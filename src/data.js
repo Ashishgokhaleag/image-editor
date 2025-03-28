@@ -87,10 +87,8 @@ const Data = () => {
 
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
       width:
-        window.innerWidth > 1200
-          ? 1000
-          : Math.min(window.innerWidth - 100, 800),
-      height: window.innerWidth > 1200 ? 600 : 500,
+        window.innerWidth > 1200 ? 800 : Math.min(window.innerWidth - 10, 600),
+      height: window.innerWidth > 1200 ? 500 : 500,
       backgroundColor: "#f0f0f0",
       preserveObjectStacking: true,
       selection: true,
@@ -122,91 +120,77 @@ const Data = () => {
 
   // Save canvas state to history
 
-  // useEffect(() => {
-  //   const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-  //     width: 600,
-  //     height: 400,
-  //     backgroundColor: "lightgray",
-  //   });
+  const saveCanvasState = useCallback(() => {
+    if (!canvas) return;
 
-  //   setCanvas(fabricCanvas);
-
-  //   return () => {
-  //     fabricCanvas.dispose();
-  //   };
-  // }, []);
-
-  // const saveCanvasState = useCallback(() => {
-  //   if (!canvas) return;
-
-  //   const json = JSON.stringify(canvas.toJSON());
-  //   setHistory((prev) => {
-  //     const newHistory = [...prev.slice(0, historyIndex + 1), json];
-  //     if (newHistory.length > 50) newHistory.shift();
-  //     return newHistory;
-  //   });
-  //   setHistoryIndex((prev) => prev + 1);
-  // }, [canvas, historyIndex]);
+    const json = JSON.stringify(canvas.toJSON());
+    setHistory((prev) => {
+      const newHistory = [...prev.slice(0, historyIndex + 1), json];
+      if (newHistory.length > 50) newHistory.shift();
+      return newHistory;
+    });
+    setHistoryIndex((prev) => prev + 1);
+  }, [canvas, historyIndex]);
 
   // Load canvas state from history
-  // const loadCanvasState = useCallback(
-  //   (index) => {
-  //     if (!canvas || !history[index]) return;
+  const loadCanvasState = useCallback(
+    (index) => {
+      if (!canvas || !history[index]) return;
 
-  //     canvas.loadFromJSON(JSON.parse(history[index]), () => {
-  //       canvas.renderAll();
-  //       setHistoryIndex(index);
+      canvas.loadFromJSON(JSON.parse(history[index]), () => {
+        canvas.renderAll();
+        setHistoryIndex(index);
 
-  //       // Find and set the active image
-  //       canvas.getObjects().forEach((obj) => {
-  //         if (obj.type === "image") {
-  //           setActiveImage(obj);
-  //         }
-  //       });
-  //     });
-  //   },
-  //   [canvas, history]
-  // );
+        // Find and set the active image
+        canvas.getObjects().forEach((obj) => {
+          if (obj.type === "image") {
+            setActiveImage(obj);
+          }
+        });
+      });
+    },
+    [canvas, history]
+  );
 
   // // Setup canvas events
-  // useEffect(() => {
-  //   if (!canvas) return;
+  useEffect(() => {
+    if (!canvas) return;
 
-  //   const handleObjectModified = () => {
-  //     saveCanvasState();
-  //   };
+    const handleObjectModified = () => {
+      saveCanvasState();
+    };
 
-  //   const handleObjectAdded = (e) => {
-  //     const object = e.target;
-  //     if (object.type === "image" && !activeImage) {
-  //       setActiveImage(object);
-  //     }
-  //     saveCanvasState();
-  //   };
+    const handleObjectAdded = (e) => {
+      const object = e.target;
+      if (object.type === "image" && !activeImage) {
+        setActiveImage(object);
+      }
+      saveCanvasState();
+    };
 
-  //   canvas.on("object:modified", handleObjectModified);
-  //   canvas.on("object:added", handleObjectAdded);
+    canvas.on("object:modified", handleObjectModified);
+    canvas.on("object:added", handleObjectAdded);
 
-  //   return () => {
-  //     canvas.off("object:modified", handleObjectModified);
-  //     canvas.off("object:added", handleObjectAdded);
-  //   };
-  // }, [canvas, saveCanvasState, activeImage]);
+    return () => {
+      canvas.off("object:modified", handleObjectModified);
+      canvas.off("object:added", handleObjectAdded);
+    };
+  }, [canvas, saveCanvasState, activeImage]);
 
   // // Initialize history when canvas is first created
-  // useEffect(() => {
-  //   if (canvas && history.length === 0) {
-  //     saveCanvasState();
-  //   }
-  // }, [canvas, history.length, saveCanvasState]);
+  useEffect(() => {
+    if (canvas && history.length === 0) {
+      saveCanvasState();
+    }
+  }, [canvas, history.length, saveCanvasState]);
 
-  // // Welcome message
-  // // useEffect(() => {
-  // //   toast("Welcome to Flux Editor", {
-  // //     description: "Upload an image to start editing",
-  // //     duration: 3000,
-  // //   });
-  // // }, []);
+  // Welcome message
+  // useEffect(() => {
+  //   toast("Welcome to Flux Editor", {
+  //     description: "Upload an image to start editing",
+  //     duration: 3000,
+  //   });
+  // }, []);
 
   // // Handle image upload
   const handleImageUpload = (event) => {
@@ -219,9 +203,9 @@ const Data = () => {
     reader.onload = (e) => {
       fabric.Image.fromURL(e.target.result, (img) => {
         canvas.clear();
-        img.set({ left: 50, top: 50, selectable: false });
-        img.scaleToWidth(canvas.width * 0.9);
-        img.scaleToHeight(canvas.height * 0.9);
+        img.set({ left: 0, top: 0, selectable: false });
+        img.scaleToWidth(canvas.width * 1);
+        img.scaleToHeight(canvas.height * 1);
         canvas.add(img);
         canvas.sendToBack(img);
         setImageObj(img); // S
@@ -247,36 +231,6 @@ const Data = () => {
     };
   }, [canvas]);
 
-  // const handleImageUpload = (event) => {
-  //   const file = event.target.files[0];
-  //   if (!file || !canvas) return;
-
-  //   setImageFile(file);
-
-  //   const reader = new FileReader();
-  //   reader.onload = (e) => {
-  //     fabric.Image.fromURL(e.target.result, (img) => {
-  //       canvas.clear(); // Clears the canvas before adding the new image
-
-  //       // Position image at the center of the canvas
-  //       const center = canvas.getCenter(); // Get canvas center coordinates
-  //       img.set({
-  //         left: center.left - img.width / 2, // Centering the image
-  //         top: center.top - img.height / 2, // Centering the image
-  //         selectable: false,
-  //       });
-
-  //       img.scaleToWidth(canvas.width * 0.9); // Scale the image to fit within the canvas width
-  //       img.scaleToHeight(canvas.height * 0.9); // Scale the image to fit within the canvas height
-  //       canvas.add(img); // Add the image to the canvas
-  //       canvas.sendToBack(img); // Send the image to the background layer
-  //       setImageObj(img); // Store the image object
-  //       canvas.renderAll(); // Ensure the canvas renders the updated image
-  //     });
-  //   };
-  //   reader.readAsDataURL(file); // Read the file as a data URL
-  // };
-
   //  // Handle tool selection
   const handleToolSelect = (tool) => {
     if (tool === activeTool) {
@@ -289,289 +243,289 @@ const Data = () => {
   };
 
   //   // Clear canvas event handlers when switching tools
-  //   useEffect(() => {
-  //     if (!canvas) return;
+  useEffect(() => {
+    if (!canvas) return;
 
-  //     // Remove any existing listeners when tool changes
-  //     canvas.off("mouse:down");
-  //     canvas.off("mouse:move");
-  //     canvas.off("mouse:up");
+    // Remove any existing listeners when tool changes
+    canvas.off("mouse:down");
+    canvas.off("mouse:move");
+    canvas.off("mouse:up");
 
-  //     if (cropMode && activeImage) {
-  //       // Create crop rectangle
-  //       if (!cropRect) {
-  //         const rect = new fabric.Rect({
-  //           left: canvas.width / 4,
-  //           top: canvas.height / 4,
-  //           width: canvas.width / 2,
-  //           height: canvas.height / 2,
-  //           fill: "rgba(255,255,255,0.2)",
-  //           stroke: "rgba(255,255,255,0.8)",
-  //           strokeWidth: 1,
-  //           strokeDashArray: [5, 5],
-  //           cornerColor: "white",
-  //           cornerSize: 10,
-  //           transparentCorners: false,
-  //           hasRotatingPoint: false,
-  //         });
+    if (cropMode && activeImage) {
+      // Create crop rectangle
+      if (!cropRect) {
+        const rect = new fabric.Rect({
+          left: canvas.width / 4,
+          top: canvas.height / 4,
+          width: canvas.width / 2,
+          height: canvas.height / 2,
+          fill: "rgba(255,255,255,0.2)",
+          stroke: "rgba(255,255,255,0.8)",
+          strokeWidth: 1,
+          strokeDashArray: [5, 5],
+          cornerColor: "white",
+          cornerSize: 10,
+          transparentCorners: false,
+          hasRotatingPoint: false,
+        });
 
-  //         canvas.add(rect);
-  //         canvas.setActiveObject(rect);
-  //         setCropRect(rect);
-  //       }
-  //     } else if (cropRect && !cropMode) {
-  //       canvas.remove(cropRect);
-  //       setCropRect(null);
-  //     }
+        canvas.add(rect);
+        canvas.setActiveObject(rect);
+        setCropRect(rect);
+      }
+    } else if (cropRect && !cropMode) {
+      canvas.remove(cropRect);
+      setCropRect(null);
+    }
 
-  //     if (expandedPanel === "annotate") {
-  //       if (
-  //         annotationTool === "line" ||
-  //         annotationTool === "rectangle" ||
-  //         annotationTool === "ellipse" ||
-  //         annotationTool === "arrow"
-  //       ) {
-  //         setupShapeDrawingHandlers();
-  //       } else if (
-  //         annotationTool === "sharpie" ||
-  //         annotationTool === "eraser" ||
-  //         annotationTool === "path"
-  //       ) {
-  //         canvas.isDrawingMode = true;
-  //         canvas.freeDrawingBrush.color =
-  //           annotationTool === "eraser" ? "#ffffff" : lineColor;
-  //         canvas.freeDrawingBrush.width =
-  //           annotationTool === "eraser"
-  //             ? 20
-  //             : lineWidths.find((w) => w.id === lineWidth)?.value || 2;
-  //       } else {
-  //         canvas.isDrawingMode = false;
-  //       }
+    if (expandedPanel === "annotate") {
+      if (
+        annotationTool === "line" ||
+        annotationTool === "rectangle" ||
+        annotationTool === "ellipse" ||
+        annotationTool === "arrow"
+      ) {
+        setupShapeDrawingHandlers();
+      } else if (
+        annotationTool === "sharpie" ||
+        annotationTool === "eraser" ||
+        annotationTool === "path"
+      ) {
+        canvas.isDrawingMode = true;
+        canvas.freeDrawingBrush.color =
+          annotationTool === "eraser" ? "#ffffff" : lineColor;
+        canvas.freeDrawingBrush.width =
+          annotationTool === "eraser"
+            ? 20
+            : lineWidths.find((w) => w.id === lineWidth)?.value || 2;
+      } else {
+        canvas.isDrawingMode = false;
+      }
 
-  //       if (annotationTool === "text") {
-  //         // Add text to canvas
-  //         const text = new fabric.IText("Double-click to edit", {
-  //           left: 100,
-  //           top: 100,
-  //           fontFamily: "Arial",
-  //           fill: lineColor,
-  //           fontSize: 20,
-  //         });
+      if (annotationTool === "text") {
+        // Add text to canvas
+        const text = new fabric.IText("Double-click to edit", {
+          left: 100,
+          top: 100,
+          fontFamily: "Arial",
+          fill: lineColor,
+          fontSize: 20,
+        });
 
-  //         canvas.add(text);
-  //         canvas.setActiveObject(text);
-  //         saveCanvasState();
-  //       }
-  //     } else {
-  //       canvas.isDrawingMode = false;
-  //     }
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        saveCanvasState();
+      }
+    } else {
+      canvas.isDrawingMode = false;
+    }
 
-  //     return () => {
-  //       if (canvas) {
-  //         canvas.off("mouse:down");
-  //         canvas.off("mouse:move");
-  //         canvas.off("mouse:up");
-  //       }
-  //     };
-  //   }, [
-  //     expandedPanel,
-  //     annotationTool,
-  //     lineColor,
-  //     lineWidth,
-  //     canvas,
-  //     cropMode,
-  //     activeImage,
-  //     cropRect,
-  //     saveCanvasState,
-  //   ]);
+    return () => {
+      if (canvas) {
+        canvas.off("mouse:down");
+        canvas.off("mouse:move");
+        canvas.off("mouse:up");
+      }
+    };
+  }, [
+    expandedPanel,
+    annotationTool,
+    lineColor,
+    lineWidth,
+    canvas,
+    cropMode,
+    activeImage,
+    cropRect,
+    saveCanvasState,
+  ]);
 
   //     // Annotation: Setup shape drawing handlers
-  // const setupShapeDrawingHandlers = () => {
-  //   if (!canvas) return;
+  const setupShapeDrawingHandlers = () => {
+    if (!canvas) return;
 
-  //   let tempShape = null;
+    let tempShape = null;
 
-  //   canvas.on("mouse:down", (o) => {
-  //     const pointer = canvas.getPointer(o.e);
-  //     setIsDrawing(true);
-  //     setStartPoint({ x: pointer.x, y: pointer.y });
+    canvas.on("mouse:down", (o) => {
+      const pointer = canvas.getPointer(o.e);
+      setIsDrawing(true);
+      setStartPoint({ x: pointer.x, y: pointer.y });
 
-  //     const widthValue = lineWidths.find((w) => w.id === lineWidth)?.value || 2;
+      const widthValue = lineWidths.find((w) => w.id === lineWidth)?.value || 2;
 
-  //     if (annotationTool === "line") {
-  //       tempShape = new fabric.Line(
-  //         [pointer.x, pointer.y, pointer.x, pointer.y],
-  //         {
-  //           stroke: lineColor,
-  //           strokeWidth: widthValue,
-  //           selectable: false,
-  //         }
-  //       );
-  //       canvas.add(tempShape);
-  //     } else if (annotationTool === "rectangle") {
-  //       tempShape = new fabric.Rect({
-  //         left: pointer.x,
-  //         top: pointer.y,
-  //         width: 0,
-  //         height: 0,
-  //         fill: "transparent",
-  //         stroke: lineColor,
-  //         strokeWidth: widthValue,
-  //         selectable: false,
-  //       });
-  //       canvas.add(tempShape);
-  //     } else if (annotationTool === "ellipse") {
-  //       tempShape = new fabric.Ellipse({
-  //         left: pointer.x,
-  //         top: pointer.y,
-  //         rx: 0,
-  //         ry: 0,
-  //         fill: "transparent",
-  //         stroke: lineColor,
-  //         strokeWidth: widthValue,
-  //         selectable: false,
-  //       });
-  //       canvas.add(tempShape);
-  //     } else if (annotationTool === "arrow") {
-  //       // Create a line for the arrow
-  //       tempShape = new fabric.Line(
-  //         [pointer.x, pointer.y, pointer.x, pointer.y],
-  //         {
-  //           stroke: lineColor,
-  //           strokeWidth: widthValue,
-  //           selectable: false,
-  //         }
-  //       );
-  //       canvas.add(tempShape);
-  //     }
-  //   });
+      if (annotationTool === "line") {
+        tempShape = new fabric.Line(
+          [pointer.x, pointer.y, pointer.x, pointer.y],
+          {
+            stroke: lineColor,
+            strokeWidth: widthValue,
+            selectable: false,
+          }
+        );
+        canvas.add(tempShape);
+      } else if (annotationTool === "rectangle") {
+        tempShape = new fabric.Rect({
+          left: pointer.x,
+          top: pointer.y,
+          width: 0,
+          height: 0,
+          fill: "red",
+          stroke: lineColor,
+          strokeWidth: widthValue,
+          selectable: false,
+        });
+        canvas.add(tempShape);
+      } else if (annotationTool === "ellipse") {
+        tempShape = new fabric.Ellipse({
+          left: pointer.x,
+          top: pointer.y,
+          rx: 0,
+          ry: 0,
+          fill: "blue",
+          stroke: lineColor,
+          strokeWidth: widthValue,
+          selectable: false,
+        });
+        canvas.add(tempShape);
+      } else if (annotationTool === "arrow") {
+        // Create a line for the arrow
+        tempShape = new fabric.Line(
+          [pointer.x, pointer.y, pointer.x, pointer.y],
+          {
+            stroke: lineColor,
+            strokeWidth: widthValue,
+            selectable: false,
+          }
+        );
+        canvas.add(tempShape);
+      }
+    });
 
-  //   canvas.on("mouse:move", (o) => {
-  //     if (!isDrawing || !startPoint || !tempShape) return;
+    canvas.on("mouse:move", (o) => {
+      if (!isDrawing || !startPoint || !tempShape) return;
 
-  //     const pointer = canvas.getPointer(o.e);
+      const pointer = canvas.getPointer(o.e);
 
-  //     if (annotationTool === "line" || annotationTool === "arrow") {
-  //       const line = tempShape;
-  //       line.set({
-  //         x2: pointer.x,
-  //         y2: pointer.y,
-  //       });
-  //     } else if (annotationTool === "rectangle") {
-  //       const rect = tempShape;
-  //       const width = Math.abs(pointer.x - startPoint.x);
-  //       const height = Math.abs(pointer.y - startPoint.y);
+      if (annotationTool === "line" || annotationTool === "arrow") {
+        const line = tempShape;
+        line.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        });
+      } else if (annotationTool === "rectangle") {
+        const rect = tempShape;
+        const width = Math.abs(pointer.x - startPoint.x);
+        const height = Math.abs(pointer.y - startPoint.y);
 
-  //       rect.set({
-  //         left: Math.min(pointer.x, startPoint.x),
-  //         top: Math.min(pointer.y, startPoint.y),
-  //         width: width,
-  //         height: height,
-  //       });
-  //     } else if (annotationTool === "ellipse") {
-  //       const ellipse = tempShape;
-  //       const rx = Math.abs(pointer.x - startPoint.x) / 2;
-  //       const ry = Math.abs(pointer.y - startPoint.y) / 2;
+        rect.set({
+          left: Math.min(pointer.x, startPoint.x),
+          top: Math.min(pointer.y, startPoint.y),
+          width: width,
+          height: height,
+        });
+      } else if (annotationTool === "ellipse") {
+        const ellipse = tempShape;
+        const rx = Math.abs(pointer.x - startPoint.x) / 2;
+        const ry = Math.abs(pointer.y - startPoint.y) / 2;
 
-  //       ellipse.set({
-  //         left: Math.min(pointer.x, startPoint.x) + rx,
-  //         top: Math.min(pointer.y, startPoint.y) + ry,
-  //         rx: rx,
-  //         ry: ry,
-  //         originX: "center",
-  //         originY: "center",
-  //       });
-  //     }
+        ellipse.set({
+          left: Math.min(pointer.x, startPoint.x) + rx,
+          top: Math.min(pointer.y, startPoint.y) + ry,
+          rx: rx,
+          ry: ry,
+          originX: "center",
+          originY: "center",
+        });
+      }
 
-  //     canvas.renderAll();
-  //   });
+      canvas.renderAll();
+    });
 
-  //   canvas.on("mouse:up", () => {
-  //     setIsDrawing(false);
-  //     setStartPoint(null);
+    canvas.on("mouse:up", () => {
+      setIsDrawing(false);
+      setStartPoint(null);
 
-  //     if (tempShape) {
-  //       if (annotationTool === "arrow" && tempShape instanceof fabric.Line) {
-  //         // Add arrowhead
-  //         const dx = tempShape.x2 - tempShape.x1;
-  //         const dy = tempShape.y2 - tempShape.y1;
-  //         const angle = Math.atan2(dy, dx);
+      if (tempShape) {
+        if (annotationTool === "arrow" && tempShape instanceof fabric.Line) {
+          // Add arrowhead
+          const dx = tempShape.x2 - tempShape.x1;
+          const dy = tempShape.y2 - tempShape.y1;
+          const angle = Math.atan2(dy, dx);
 
-  //         const headLength = 15;
-  //         const headWidth = 15;
+          const headLength = 15;
+          const headWidth = 15;
 
-  //         const x2 = tempShape.x2;
-  //         const y2 = tempShape.y2;
+          const x2 = tempShape.x2;
+          const y2 = tempShape.y2;
 
-  //         // Create arrowhead
-  //         const triangle = new fabric.Triangle({
-  //           left: x2,
-  //           top: y2,
-  //           width: headWidth,
-  //           height: headLength,
-  //           fill: lineColor,
-  //           angle: (angle * 180) / Math.PI + 90,
-  //           originX: "center",
-  //           originY: "bottom",
-  //         });
+          // Create arrowhead
+          const triangle = new fabric.Triangle({
+            left: x2,
+            top: y2,
+            width: headWidth,
+            height: headLength,
+            fill: lineColor,
+            angle: (angle * 180) / Math.PI + 90,
+            originX: "center",
+            originY: "bottom",
+          });
 
-  //         // Group the line and arrowhead
-  //         const group = new fabric.Group([tempShape, triangle], {
-  //           selectable: true,
-  //           hasControls: true,
-  //         });
+          // Group the line and arrowhead
+          const group = new fabric.Group([tempShape, triangle], {
+            selectable: true,
+            hasControls: true,
+          });
 
-  //         canvas.remove(tempShape);
-  //         canvas.add(group);
-  //       }
+          canvas.remove(tempShape);
+          canvas.add(group);
+        }
 
-  //       tempShape.set({
-  //         selectable: true,
-  //         hasControls: true,
-  //       });
+        tempShape.set({
+          selectable: true,
+          hasControls: true,
+        });
 
-  //       canvas.renderAll();
-  //       saveCanvasState();
-  //     }
+        canvas.renderAll();
+        saveCanvasState();
+      }
 
-  //     tempShape = null;
-  //   });
-  // };
+      tempShape = null;
+    });
+  };
 
-  // // Handle undo/redo
-  // const undo = useCallback(() => {
-  //   if (historyIndex > 0) {
-  //     loadCanvasState(historyIndex - 1);
-  //   }
-  // }, [historyIndex, loadCanvasState]);
+  // Handle undo/redo
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      loadCanvasState(historyIndex - 1);
+    }
+  }, [historyIndex, loadCanvasState]);
 
-  // const redo = useCallback(() => {
-  //   if (historyIndex < history.length - 1) {
-  //     loadCanvasState(historyIndex + 1);
-  //   }
-  // }, [historyIndex, history.length, loadCanvasState]);
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      loadCanvasState(historyIndex + 1);
+    }
+  }, [historyIndex, history.length, loadCanvasState]);
 
-  // // Handle zoom
-  // const handleZoom = (newZoom) => {
-  //   if (!canvas) return;
+  // Handle zoom
+  const handleZoom = (newZoom) => {
+    if (!canvas) return;
 
-  //   setZoom(newZoom);
+    setZoom(newZoom);
 
-  //   const center = canvas.getCenter();
-  //   canvas.zoomToPoint({ x: center.left, y: center.top }, newZoom / 100);
-  //   canvas.renderAll();
-  // };
+    const center = canvas.getCenter();
+    canvas.zoomToPoint({ x: center.left, y: center.top }, newZoom / 100);
+    canvas.renderAll();
+  };
 
-  // // Handle zoom in/out
-  // const handleZoomIn = () => {
-  //   const newZoom = Math.min(zoom + 10, 200);
-  //   handleZoom(newZoom);
-  // };
+  // Handle zoom in/out
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoom + 10, 200);
+    handleZoom(newZoom);
+  };
 
-  // const handleZoomOut = () => {
-  //   const newZoom = Math.max(zoom - 10, 10);
-  //   handleZoom(newZoom);
-  // };
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoom - 10, 10);
+    handleZoom(newZoom);
+  };
 
   // // Handle save image
   const handleSaveImage = () => {
@@ -593,270 +547,180 @@ const Data = () => {
   };
 
   // Filter panel: Apply filter
-  // const applyFilter = (filterId) => {
-  //   if (!activeImage) return;
+  const applyFilter = (filterId) => {
+    if (!activeImage) return;
 
-  //   setActiveFilter(filterId);
+    setActiveFilter(filterId);
 
-  //   // Reset adjustments
-  //   setBrightness(0);
-  //   setContrast(0);
-  //   setSaturation(0);
+    // Reset adjustments
+    setBrightness(0);
+    setContrast(0);
+    setSaturation(0);
 
-  //   // Remove existing filters
-  //   activeImage.filters = [];
+    // Remove existing filters
+    activeImage.filters = [];
 
-  //   // Apply the selected filter
-  //   switch (filterId) {
-  //     case "chrome":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Contrast({ contrast: 0.1 }),
-  //         new fabric.Image.filters.Saturation({ saturation: 0.3 })
-  //       );
-  //       break;
-  //     case "fade":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Contrast({ contrast: -0.15 }),
-  //         new fabric.Image.filters.Saturation({ saturation: -0.2 })
-  //       );
-  //       break;
-  //     case "cold":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Saturation({ saturation: 0.1 }),
-  //         new fabric.Image.filters.Contrast({ contrast: 0.1 })
-  //       );
-  //       break;
-  //     case "warm":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Saturation({ saturation: 0.2 }),
-  //         new fabric.Image.filters.Brightness({ brightness: 0.05 })
-  //       );
-  //       break;
-  //     case "pastel":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Saturation({ saturation: -0.3 }),
-  //         new fabric.Image.filters.Brightness({ brightness: 0.1 })
-  //       );
-  //       break;
-  //     case "mono":
-  //       activeImage.filters.push(new fabric.Image.filters.Grayscale());
-  //       break;
-  //     case "noir":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Grayscale(),
-  //         new fabric.Image.filters.Contrast({ contrast: 0.3 })
-  //       );
-  //       break;
-  //     case "stark":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Contrast({ contrast: 0.5 }),
-  //         new fabric.Image.filters.Saturation({ saturation: -0.2 })
-  //       );
-  //       break;
-  //     case "wash":
-  //       activeImage.filters.push(
-  //         new fabric.Image.filters.Contrast({ contrast: -0.2 }),
-  //         new fabric.Image.filters.Brightness({ brightness: 0.2 })
-  //       );
-  //       break;
-  //   }
+    // Apply the selected filter
+    
+    canvas.renderAll();
+    saveCanvasState();
+  };
 
-  //   // activeImage.applyFilters();
-  //   canvas.renderAll();
-  //   // saveCanvasState();
-  // };
-
-  // // Filter panel: Apply adjustments
-  // const applyAdjustments = () => {
-  //   if (!activeImage) return;
-
-  //   // Apply adjustments on top of any existing filter
-  //   activeImage.filters = activeImage.filters || [];
-
-  //   // Remove any existing adjustment filters of the same type
-  //   activeImage.filters = activeImage.filters.filter(
-  //     (filter) =>
-  //       !(filter instanceof fabric.Image.filters.Brightness) &&
-  //       !(filter instanceof fabric.Image.filters.Contrast) &&
-  //       !(filter instanceof fabric.Image.filters.Saturation)
-  //   );
-
-  //   // Add current adjustments
-  //   if (brightness !== 0) {
-  //     activeImage.filters.push(
-  //       new fabric.Image.filters.Brightness({ brightness })
-  //     );
-  //   }
-
-  //   if (contrast !== 0) {
-  //     activeImage.filters.push(new fabric.Image.filters.Contrast({ contrast }));
-  //   }
-
-  //   if (saturation !== 0) {
-  //     activeImage.filters.push(
-  //       new fabric.Image.filters.Saturation({ saturation })
-  //     );
-  //   }
-
-  //   activeImage.applyFilters();
-  //   canvas.renderAll();
-  //   saveCanvasState();
-  // };
-
+ 
   // // Filter panel: Handle adjustment change
-  // const handleAdjustmentChange = (adjustment, value) => {
-  //   adjustment.setValue(value);
-  // };
+  const handleAdjustmentChange = (adjustment, value) => {
+    adjustment.setValue(value);
+  };
 
   // // Annotate panel: Apply crop
-  // const handleRotateLeft = () => {
-  //   if (!activeImage) return;
+  const handleRotateLeft = () => {
+    if (!activeImage) return;
 
-  //   const newAngle = (angle - 90) % 360;
-  //   setAngle(newAngle);
+    const newAngle = (angle - 90) % 360;
+    setAngle(newAngle);
 
-  //   activeImage.rotate(newAngle);
-  //   canvas.renderAll();
-  //   saveCanvasState();
-  // };
+    activeImage.rotate(newAngle);
+    canvas.renderAll();
+    saveCanvasState();
+  };
 
   // // Annotate panel: Flip horizontal
-  // const handleFlipHorizontal = () => {
-  //   if (!activeImage) return;
+  const handleFlipHorizontal = () => {
+    if (!activeImage) return;
 
-  //   activeImage.set("flipX", !activeImage.flipX);
-  //   canvas.renderAll();
-  //   saveCanvasState();
-  // };
+    activeImage.set("flipX", !activeImage.flipX);
+    canvas.renderAll();
+    saveCanvasState();
+  };
 
-  // // Annotate panel: Apply crop
-  // const handleApplyCrop = () => {
-  //   if (!canvas || !activeImage || !cropRect) return;
+  // Annotate panel: Apply crop
+  const handleApplyCrop = () => {
+    if (!canvas || !activeImage || !cropRect) return;
 
-  //   // Get the crop rectangle's position and dimensions
-  //   const rect = cropRect.getBoundingRect();
+    // Get the crop rectangle's position and dimensions
+    const rect = cropRect.getBoundingRect();
 
-  //   // Calculate crop coordinates relative to the image
-  //   const imgElement = activeImage.getElement();
+    // Calculate crop coordinates relative to the image
+    const imgElement = activeImage.getElement();
 
-  //   // Create a temporary canvas for cropping
-  //   const tempCanvas = document.createElement("canvas");
-  //   const tempCtx = tempCanvas.getContext("2d");
+    // Create a temporary canvas for cropping
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
 
-  //   if (!tempCtx) return;
+    if (!tempCtx) return;
 
-  //   // Set the dimensions of the temporary canvas to the crop rectangle size
-  //   tempCanvas.width = rect.width;
-  //   tempCanvas.height = rect.height;
+    // Set the dimensions of the temporary canvas to the crop rectangle size
+    tempCanvas.width = rect.width;
+    tempCanvas.height = rect.height;
 
-  //   // Calculate the position of the crop rectangle relative to the image
-  //   const activeImageLeft = activeImage.left || 0;
-  //   const activeImageTop = activeImage.top || 0;
-  //   const activeImageScaleX = activeImage.scaleX || 1;
-  //   const activeImageScaleY = activeImage.scaleY || 1;
+    // Calculate the position of the crop rectangle relative to the image
+    const activeImageLeft = activeImage.left || 0;
+    const activeImageTop = activeImage.top || 0;
+    const activeImageScaleX = activeImage.scaleX || 1;
+    const activeImageScaleY = activeImage.scaleY || 1;
 
-  //   // Get crop coordinates in the image's coordinate system
-  //   const cropX = (rect.left - activeImageLeft) / activeImageScaleX;
-  //   const cropY = (rect.top - activeImageTop) / activeImageScaleY;
-  //   const cropWidth = rect.width / activeImageScaleX;
-  //   const cropHeight = rect.height / activeImageScaleY;
+    // Get crop coordinates in the image's coordinate system
+    const cropX = (rect.left - activeImageLeft) / activeImageScaleX;
+    const cropY = (rect.top - activeImageTop) / activeImageScaleY;
+    const cropWidth = rect.width / activeImageScaleX;
+    const cropHeight = rect.height / activeImageScaleY;
 
-  //   // Draw the cropped portion onto the temporary canvas
-  //   tempCtx.drawImage(
-  //     imgElement,
-  //     cropX,
-  //     cropY,
-  //     cropWidth,
-  //     cropHeight,
-  //     0,
-  //     0,
-  //     rect.width,
-  //     rect.height
-  //   );
+    // Draw the cropped portion onto the temporary canvas
+    tempCtx.drawImage(
+      imgElement,
+      cropX,
+      cropY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      rect.width,
+      rect.height
+    );
 
-  //   // Create a new fabric Image from the cropped canvas
-  //   fabric.Image.fromURL(tempCanvas.toDataURL(), (croppedImg) => {
-  //     // Remove the original image and crop rectangle
-  //     canvas.remove(activeImage);
-  //     canvas.remove(cropRect);
+    // Create a new fabric Image from the cropped canvas
+    fabric.Image.fromURL(tempCanvas.toDataURL(), (croppedImg) => {
+      // Remove the original image and crop rectangle
+      canvas.remove(activeImage);
+      canvas.remove(cropRect);
 
-  //     // Position the new cropped image
-  //     croppedImg.set({
-  //       left: rect.left,
-  //       top: rect.top,
-  //     });
+      // Position the new cropped image
+      croppedImg.set({
+        left: rect.left,
+        top: rect.top,
+      });
 
-  //     // Add the cropped image to the canvas
-  //     canvas.add(croppedImg);
-  //     canvas.setActiveObject(croppedImg);
+      // Add the cropped image to the canvas
+      canvas.add(croppedImg);
+      canvas.setActiveObject(croppedImg);
 
-  //     // Reset the crop state
-  //     setCropRect(null);
-  //     setCropMode(false);
-  //     saveCanvasState();
-  //   });
-  // };
+      // Reset the crop state
+      setCropRect(null);
+      setCropMode(false);
+      saveCanvasState();
+    });
+  };
 
-  // // Sticker panel: Add sticker
-  // const addSticker = (emoji) => {
-  //   if (!canvas) return;
+  // Sticker panel: Add sticker
+  const addSticker = (emoji) => {
+    if (!canvas) return;
 
-  //   const text = new fabric.Text(emoji, {
-  //     left: 100,
-  //     top: 100,
-  //     fontSize: 60,
-  //     fill: "#000000",
-  //     fontFamily:
-  //       "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Android Emoji, EmojiSymbols, EmojiOne Mozilla, Twemoji Mozilla, Segoe UI Symbol",
-  //   });
+    const text = new fabric.Text(emoji, {
+      left: 100,
+      top: 100,
+      fontSize: 60,
+      fill: "#000000",
+      fontFamily:
+        "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Android Emoji, EmojiSymbols, EmojiOne Mozilla, Twemoji Mozilla, Segoe UI Symbol",
+    });
 
-  //   canvas.add(text);
-  //   canvas.setActiveObject(text);
-  //   saveCanvasState();
-  // };
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    saveCanvasState();
+  };
 
-  // // Annotation: Handle tool select
-  // const handleAnnotationToolSelect = (toolId) => {
-  //   setAnnotationTool(toolId);
-  // };
+  // Annotation: Handle tool select
+  const handleAnnotationToolSelect = (toolId) => {
+    setAnnotationTool(toolId);
+  };
 
-  // // Annotation: Handle color change
-  // const handleColorChange = (color) => {
-  //   setLineColor(color);
+  // Annotation: Handle color change
+  const handleColorChange = (color) => {
+    setLineColor(color);
 
-  //   if (canvas && canvas.isDrawingMode) {
-  //     canvas.freeDrawingBrush.color = color;
-  //   }
+    if (canvas && canvas.isDrawingMode) {
+      canvas.freeDrawingBrush.color = color;
+    }
 
-  //   const activeObject = canvas && canvas.getActiveObject();
-  //   if (activeObject) {
-  //     if (activeObject.type === "i-text") {
-  //       activeObject.set("fill", color);
-  //     } else {
-  //       activeObject.set("stroke", color);
-  //     }
-  //     canvas.renderAll();
-  //     saveCanvasState();
-  //   }
-  // };
+    const activeObject = canvas && canvas.getActiveObject();
+    if (activeObject) {
+      if (activeObject.type === "i-text") {
+        activeObject.set("fill", color);
+      } else {
+        activeObject.set("stroke", color);
+      }
+      canvas.renderAll();
+      saveCanvasState();
+    }
+  };
 
   // // Annotation: Handle line width change
-  // const handleLineWidthChange = (width) => {
-  //   setLineWidth(width);
+  const handleLineWidthChange = (width) => {
+    setLineWidth(width);
 
-  //   const widthValue = lineWidths.find((w) => w.id === width)?.value || 2;
+    const widthValue = lineWidths.find((w) => w.id === width)?.value || 2;
 
-  //   if (canvas && canvas.isDrawingMode) {
-  //     canvas.freeDrawingBrush.width = widthValue;
-  //   }
+    if (canvas && canvas.isDrawingMode) {
+      canvas.freeDrawingBrush.width = widthValue;
+    }
 
-  //   const activeObject = canvas && canvas.getActiveObject();
-  //   if (activeObject && activeObject.type !== "i-text") {
-  //     activeObject.set("strokeWidth", widthValue);
-  //     canvas.renderAll();
-  //     saveCanvasState();
-  //   }
-  // };
+    const activeObject = canvas && canvas.getActiveObject();
+    if (activeObject && activeObject.type !== "i-text") {
+      activeObject.set("strokeWidth", widthValue);
+      canvas.renderAll();
+      saveCanvasState();
+    }
+  };
 
   // // Handle keyboard shortcuts
   // useEffect(() => {
@@ -900,7 +764,53 @@ const Data = () => {
     switch (expandedPanel) {
       case "filter":
         return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex flex-col items-center mb-4">
+              <div className="flex flex-wrap justify-center mb-2">
+                {adjustments.map((adjustment) => (
+                  <div key={adjustment.id} className="px-4 py-2">
+                    <div className="text-white/80 text-sm mb-1">
+                      {adjustment.name}
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="range"
+                        min={adjustment.min}
+                        max={adjustment.max}
+                        step={adjustment.step}
+                        value={adjustment.value}
+                        onChange={(e) =>
+                          handleAdjustmentChange(
+                            adjustment,
+                            parseFloat(e.target.value)
+                          )
+                        }
+                        className="w-32 h-2 bg-editor-button rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span className="text-white/70 text-xs ml-2">
+                        {adjustment.value.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
+              {filters.map((filter) => (
+                <button
+                  key={filter.id}
+                  className={`filter-btn ${
+                    activeFilter === filter.id ? "active" : ""
+                  }`}
+                  onClick={() => applyFilter(filter.id)}
+                >
+                  <div className="filter-img bg-gray-300"></div>
+                  <span className="text-xs text-white/80">{filter.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         );
       case "crop":
         return (
@@ -964,7 +874,7 @@ const Data = () => {
               </button>
             </div>
 
-            <div className="mt-4 px-8">
+            {/* <div className="mt-4 px-8">
               <div className="relative w-full h-1 bg-white/20 rounded-full">
                 <div className="w-1 h-3 bg-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"></div>
                 <div className="flex justify-between text-white/60 text-xs mt-2">
@@ -975,7 +885,7 @@ const Data = () => {
                   <span>90°</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         );
       case "sticker":
@@ -984,14 +894,84 @@ const Data = () => {
         );
       case "annotate":
         return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex justify-center items-center gap-4 mb-2">
+              <div className="text-white/70 text-sm">line color</div>
+              <div className="h-8 w-8 rounded-full border-2 border-white overflow-hidden">
+                <div
+                  className="w-full h-full"
+                  style={{ backgroundColor: lineColor }}
+                ></div>
+              </div>
+
+              <div className="ml-4 text-white/70 text-sm">line width</div>
+              <div className="relative">
+                <select
+                  value={lineWidth}
+                  onChange={(e) => handleLineWidthChange(e.target.value)}
+                  className="appearance-none bg-editor-button text-white px-3 py-1 rounded-lg pr-8"
+                >
+                  {lineWidths.map((width) => (
+                    <option key={width.id} value={width.id}>
+                      {width.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg
+                    width="10"
+                    height="6"
+                    viewBox="0 0 10 6"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L5 5L9 1"
+                      stroke="white"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-2 mt-3">
+              {annotationTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  className={`annotation-btn ${
+                    annotationTool === tool.id ? "bg-white/10" : ""
+                  }`}
+                  onClick={() => handleAnnotationToolSelect(tool.id)}
+                >
+                  {tool.icon}
+                  <span className="text-sm text-white/80">{tool.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-center space-x-2 mt-4">
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  className={`w-8 h-8 rounded-full ${
+                    lineColor === color ? "ring-2 ring-white" : ""
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                ></button>
+              ))}
+            </div>
+          </div>
         );
       default:
         return null;
     }
   };
 
-  // // Sidebar Component
+  // Sidebar Component
   const Sidebar = () => (
     <div className="w-20 bg-editor-sidebar border-r border-white/10 flex flex-col items-center py-4 overflow-y-auto">
       <button className="sidebar-tool mb-2">
@@ -1109,10 +1089,6 @@ const Data = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* <EditorToolbar /> */}
-          {/* <CanvasArea /> */}
-          {/* <div className="w-full flex justify-center ">
-          <canvas className="fabric-canvas" ref={canvasRef}  />
-        </div> */}
           <div className="flex-1 overflow-hidden flex justify-center items-center p-4 relative">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -1120,16 +1096,17 @@ const Data = () => {
               </div>
             )}
 
-            <div className=" animate-fade-in">
-              <canvas ref={canvasRef} className="shadow-lg" />
+            <div className=" animate-fade-in  ">
+              <canvas ref={canvasRef} className="" />
             </div>
 
-            {!loading && !canvasRef.current && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                <p className="text-lg mb-3">No image loaded</p>
-                <p className="text-sm">Upload an image to get started</p>
-              </div>
-            )}
+            {!loading ||
+              (!canvasRef.current && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
+                  <p className="text-lg mb-3">No image loaded</p>
+                  <p className="text-sm">Upload an image to get started</p>
+                </div>
+              ))}
           </div>
           {renderActivePanel()}
         </div>
@@ -1139,4 +1116,3 @@ const Data = () => {
 };
 
 export default Data;
-

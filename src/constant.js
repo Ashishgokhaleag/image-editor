@@ -36,8 +36,8 @@ export const filters = [
   export const tools = [
     { id: "crop", name: "Crop", icon: <Crop className="sidebar-icon" /> },
     {
-      id: "finetune",
-      name: "Finetune",
+      id: "adjust",
+      name: "Adjust",
       icon: <Sliders className="sidebar-icon" />,
     },
     { id: "filter", name: "Filter", icon: <Filter className="sidebar-icon" /> },
@@ -51,11 +51,6 @@ export const filters = [
       name: "Sticker",
       icon: <Sticker className="sidebar-icon" />,
     },
-    {
-      id: "fill",
-      name: "Fill",
-      icon: <PaintBucket className="sidebar-icon" />,
-    },
     { id: "redact", name: "Redact", icon: <FileX className="sidebar-icon" /> },
     {
       id: "frame",
@@ -68,12 +63,15 @@ export const filters = [
     { id: "sharpie", name: "Sharpie", icon: <Pencil size={18} /> },
     { id: "eraser", name: "Eraser", icon: <Eraser size={18} /> },
     { id: "text", name: "Text", icon: <Type size={18} /> },
-    { id: "path", name: "Path", icon: <PenTool size={18} /> },
+  ];
+
+  export const ShapesTools= [
     { id: "line", name: "Line", icon: <Minus size={18} /> },
     { id: "arrow", name: "Arrow", icon: <MoveRight size={18} /> },
     { id: "rectangle", name: "Rectangle", icon: <Square size={18} /> },
     { id: "ellipse", name: "Ellipse", icon: <Circle size={18} /> },
-  ];
+  ]
+
 
   export const lineWidths = [
     { id: "small", name: "Small", value: 2 },

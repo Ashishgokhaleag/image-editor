@@ -23,7 +23,7 @@ const Data = () => {
   const [canvas, setCanvas] = useState(null);
   const [activeImage, setActiveImage] = useState(null);
   const [activeTool, setActiveTool] = useState("");
-  const [zoom, setZoom] = useState(56);
+  const [zoom, setZoom] = useState(100);
   const [loading, setLoading] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(null);
   const [history, setHistory] = useState([]);
@@ -132,7 +132,6 @@ const Data = () => {
     setHistoryIndex((prev) => prev + 1);
   }, [canvas, historyIndex]);
 
-  // Load canvas state from history
   const loadCanvasState = useCallback(
     (index) => {
       if (!canvas || !history[index]) return;
@@ -141,7 +140,6 @@ const Data = () => {
         canvas.renderAll();
         setHistoryIndex(index);
 
-        // Find and set the active image
         canvas.getObjects().forEach((obj) => {
           if (obj.type === "image") {
             setActiveImage(obj);
@@ -177,22 +175,14 @@ const Data = () => {
     };
   }, [canvas, saveCanvasState, activeImage]);
 
-  // // Initialize history when canvas is first created
+  // Initialize history when canvas is first created
   useEffect(() => {
     if (canvas && history.length === 0) {
       saveCanvasState();
     }
   }, [canvas, history.length, saveCanvasState]);
 
-  // Welcome message
-  // useEffect(() => {
-  //   toast("Welcome to Flux Editor", {
-  //     description: "Upload an image to start editing",
-  //     duration: 3000,
-  //   });
-  // }, []);
-
-  // // Handle image upload
+  // Handle image upload
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (!file || !canvas) return;
@@ -231,7 +221,7 @@ const Data = () => {
     };
   }, [canvas]);
 
-  //  // Handle tool selection
+  // Handle tool selection
   const handleToolSelect = (tool) => {
     if (tool === activeTool) {
       setActiveTool("");
@@ -242,11 +232,10 @@ const Data = () => {
     }
   };
 
-  //   // Clear canvas event handlers when switching tools
+  // tool code after solving inifinite text renders
   useEffect(() => {
     if (!canvas) return;
 
-    // Remove any existing listeners when tool changes
     canvas.off("mouse:down");
     canvas.off("mouse:move");
     canvas.off("mouse:up");
@@ -302,8 +291,21 @@ const Data = () => {
         canvas.isDrawingMode = false;
       }
 
+      // Implement eraser functionality
+      if (annotationTool === "eraser") {
+        canvas.isDrawingMode = false;
+
+        canvas.on("mouse:down", (e) => {
+          const target = canvas.findTarget(e);
+          if (target && target.isType("path")) {
+            canvas.remove(target);
+          }
+        });
+      }
+      // Implement text tool functionality
       if (annotationTool === "text") {
-        // Add text to canvas
+        canvas.isDrawingMode = false;
+
         const text = new fabric.IText("Double-click to edit", {
           left: 100,
           top: 100,
@@ -315,9 +317,17 @@ const Data = () => {
         canvas.add(text);
         canvas.setActiveObject(text);
         saveCanvasState();
+        setAnnotationTool(null);
       }
-    } else {
-      canvas.isDrawingMode = false;
+
+      // Enable text editing on double-click
+      canvas.on("mouse:dblclick", (e) => {
+        const target = canvas.findTarget(e);
+        if (target && target.isType("i-text")) {
+          target.enterEditing();
+          target.selectAll();
+        }
+      });
     }
 
     return () => {
@@ -339,7 +349,7 @@ const Data = () => {
     saveCanvasState,
   ]);
 
-  //     // Annotation: Setup shape drawing handlers
+  // Annotation: Setup shape drawing handlers
   const setupShapeDrawingHandlers = () => {
     if (!canvas) return;
 
@@ -557,19 +567,76 @@ const Data = () => {
     setContrast(0);
     setSaturation(0);
 
+    // Color filters
+
+    switch (filterId) {
+      case "chrome":
+        activeImage.filters.push(
+          new fabric.Image.filters.Contrast({ contrast: 0.1 }),
+          new fabric.Image.filters.Saturation({ saturation: 0.3 })
+        );
+        break;
+      case "fade":
+        activeImage.filters.push(
+          new fabric.Image.filters.Contrast({ contrast: -0.15 }),
+          new fabric.Image.filters.Saturation({ saturation: -0.2 })
+        );
+        break;
+      case "cold":
+        activeImage.filters.push(
+          new fabric.Image.filters.Saturation({ saturation: 0.1 }),
+          new fabric.Image.filters.Contrast({ contrast: 0.1 })
+        );
+        break;
+      case "warm":
+        activeImage.filters.push(
+          new fabric.Image.filters.Saturation({ saturation: 0.2 }),
+          new fabric.Image.filters.Brightness({ brightness: 0.05 })
+        );
+        break;
+      case "pastel":
+        activeImage.filters.push(
+          new fabric.Image.filters.Saturation({ saturation: -0.3 }),
+          new fabric.Image.filters.Brightness({ brightness: 0.1 })
+        );
+        break;
+      case "mono":
+        activeImage.filters.push(new fabric.Image.filters.Grayscale());
+        break;
+      case "noir":
+        activeImage.filters.push(
+          new fabric.Image.filters.Grayscale(),
+          new fabric.Image.filters.Contrast({ contrast: 0.3 })
+        );
+        break;
+      case "stark":
+        activeImage.filters.push(
+          new fabric.Image.filters.Contrast({ contrast: 0.5 }),
+          new fabric.Image.filters.Saturation({ saturation: -0.2 })
+        );
+        break;
+      case "wash":
+        activeImage.filters.push(
+          new fabric.Image.filters.Contrast({ contrast: -0.2 }),
+          new fabric.Image.filters.Brightness({ brightness: 0.2 })
+        );
+        break;
+    }
+
+    activeImage.applyFilters();
     // Remove existing filters
     activeImage.filters = [];
 
     // Apply the selected filter
-    
+
     canvas.renderAll();
     saveCanvasState();
   };
 
- 
   // // Filter panel: Handle adjustment change
   const handleAdjustmentChange = (adjustment, value) => {
     adjustment.setValue(value);
+    applyAdjustments();
   };
 
   // // Annotate panel: Apply crop
@@ -593,72 +660,56 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // Annotate panel: Apply crop
+  // handleApplyCrop
+
   const handleApplyCrop = () => {
-    if (!canvas || !activeImage || !cropRect) return;
+    if (!canvas || !imageObj || !cropRect) return;
 
-    // Get the crop rectangle's position and dimensions
-    const rect = cropRect.getBoundingRect();
+    const { left, top, width, height } = cropRect;
 
-    // Calculate crop coordinates relative to the image
-    const imgElement = activeImage.getElement();
+    // Create cropped image using canvas.toDataURL
+    const croppedCanvas = document.createElement("canvas");
+    const ctx = croppedCanvas.getContext("2d");
 
-    // Create a temporary canvas for cropping
-    const tempCanvas = document.createElement("canvas");
-    const tempCtx = tempCanvas.getContext("2d");
+    croppedCanvas.width = width;
+    croppedCanvas.height = height;
 
-    if (!tempCtx) return;
-
-    // Set the dimensions of the temporary canvas to the crop rectangle size
-    tempCanvas.width = rect.width;
-    tempCanvas.height = rect.height;
-
-    // Calculate the position of the crop rectangle relative to the image
-    const activeImageLeft = activeImage.left || 0;
-    const activeImageTop = activeImage.top || 0;
-    const activeImageScaleX = activeImage.scaleX || 1;
-    const activeImageScaleY = activeImage.scaleY || 1;
-
-    // Get crop coordinates in the image's coordinate system
-    const cropX = (rect.left - activeImageLeft) / activeImageScaleX;
-    const cropY = (rect.top - activeImageTop) / activeImageScaleY;
-    const cropWidth = rect.width / activeImageScaleX;
-    const cropHeight = rect.height / activeImageScaleY;
-
-    // Draw the cropped portion onto the temporary canvas
-    tempCtx.drawImage(
-      imgElement,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
+    const originalCanvas = canvas.toCanvasElement(); // Convert fabric canvas to normal canvas
+    ctx.drawImage(
+      originalCanvas,
+      left,
+      top,
+      width,
+      height,
       0,
       0,
-      rect.width,
-      rect.height
+      width,
+      height
     );
 
-    // Create a new fabric Image from the cropped canvas
-    fabric.Image.fromURL(tempCanvas.toDataURL(), (croppedImg) => {
-      // Remove the original image and crop rectangle
-      canvas.remove(activeImage);
-      canvas.remove(cropRect);
+    const croppedDataUrl = croppedCanvas.toDataURL(); // Convert to base64 image
 
-      // Position the new cropped image
+    fabric.Image.fromURL(croppedDataUrl, (croppedImg) => {
       croppedImg.set({
-        left: rect.left,
-        top: rect.top,
+        left: 50,
+        top: 50,
+        selectable: false,
+        hasBorders: false,
+        hasControls: false,
       });
 
-      // Add the cropped image to the canvas
-      canvas.add(croppedImg);
-      canvas.setActiveObject(croppedImg);
+      croppedImg.scaleToWidth(canvas.width * 1);
+      croppedImg.scaleToHeight(canvas.height * 1);
 
-      // Reset the crop state
-      setCropRect(null);
-      setCropMode(false);
-      saveCanvasState();
+      canvas.clear();
+      canvas.add(croppedImg);
+      canvas.sendToBack(croppedImg);
+      setImageObj(croppedImg);
     });
+
+    setCropRect(null);
+    setCropMode(false);
+    saveCanvasState();
   };
 
   // Sticker panel: Add sticker
@@ -722,40 +773,75 @@ const Data = () => {
     }
   };
 
+  // handle adjustments
+  const applyAdjustments = () => {
+    if (!activeImage) return;
+
+    activeImage.filters = activeImage.filters || [];
+
+    activeImage.filters = activeImage.filters.filter(
+      (filter) =>
+        !(filter instanceof fabric.Image.filters.Brightness) &&
+        !(filter instanceof fabric.Image.filters.Contrast) &&
+        !(filter instanceof fabric.Image.filters.Saturation)
+    );
+
+    // Add current adjustments
+    if (brightness !== 0) {
+      activeImage.filters.push(
+        new fabric.Image.filters.Brightness({ brightness })
+      );
+    }
+
+    if (contrast !== 0) {
+      activeImage.filters.push(new fabric.Image.filters.Contrast({ contrast }));
+    }
+
+    if (saturation !== 0) {
+      activeImage.filters.push(
+        new fabric.Image.filters.Saturation({ saturation })
+      );
+    }
+
+    activeImage.applyFilters();
+    canvas.renderAll();
+    saveCanvasState();
+  };
+
   // // Handle keyboard shortcuts
-  // useEffect(() => {
-  //   const handleKeyDown = (e) => {
-  //     // Undo: Ctrl+Z
-  //     if (e.ctrlKey && e.key === "z") {
-  //       e.preventDefault();
-  //       undo();
-  //     }
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Undo: Ctrl+Z
+      if (e.ctrlKey && e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
 
-  //     // Redo: Ctrl+Y or Ctrl+Shift+Z
-  //     if (
-  //       (e.ctrlKey && e.key === "y") ||
-  //       (e.ctrlKey && e.shiftKey && e.key === "z")
-  //     ) {
-  //       e.preventDefault();
-  //       redo();
-  //     }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if (
+        (e.ctrlKey && e.key === "y") ||
+        (e.ctrlKey && e.shiftKey && e.key === "z")
+      ) {
+        e.preventDefault();
+        redo();
+      }
 
-  //     // Delete selected object: Delete or Backspace
-  //     if ((e.key === "Delete" || e.key === "Backspace") && canvas) {
-  //       const activeObject = canvas.getActiveObject();
-  //       if (activeObject && activeObject !== activeImage) {
-  //         canvas.remove(activeObject);
-  //         saveCanvasState();
-  //       }
-  //     }
-  //   };
+      // Delete selected object: Delete or Backspace
+      if ((e.key === "Delete" || e.key === "Backspace") && canvas) {
+        const activeObject = canvas.getActiveObject();
+        if (activeObject && activeObject !== activeImage) {
+          canvas.remove(activeObject);
+          saveCanvasState();
+        }
+      }
+    };
 
-  //   window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyDown);
-  //   };
-  // }, [canvas, undo, redo, saveCanvasState, activeImage]);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [canvas, undo, redo, saveCanvasState, activeImage]);
 
   // // Render specific panel based on active tool
   const renderActivePanel = () => {
@@ -763,6 +849,25 @@ const Data = () => {
 
     switch (expandedPanel) {
       case "filter":
+        return (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
+              {filters.map((filter) => (
+                <button
+                  key={filter.id}
+                  className={`filter-btn ${
+                    activeFilter === filter.id ? "active" : ""
+                  }`}
+                  onClick={() => applyFilter(filter.id)}
+                >
+                  <div className="filter-img bg-gray-300"></div>
+                  <span className="text-xs text-white/80">{filter.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      case "adjust":
         return (
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
             <div className="flex flex-col items-center mb-4">
@@ -795,21 +900,6 @@ const Data = () => {
                 ))}
               </div>
             </div>
-
-            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  className={`filter-btn ${
-                    activeFilter === filter.id ? "active" : ""
-                  }`}
-                  onClick={() => applyFilter(filter.id)}
-                >
-                  <div className="filter-img bg-gray-300"></div>
-                  <span className="text-xs text-white/80">{filter.name}</span>
-                </button>
-              ))}
-            </div>
           </div>
         );
       case "crop":
@@ -818,7 +908,7 @@ const Data = () => {
             <div className="flex justify-center items-center mb-4">
               <button
                 className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-                // onClick={handleRotateLeft}
+                onClick={handleRotateLeft}
               >
                 <RotateCcw size={16} />
                 Rotate left
@@ -826,7 +916,7 @@ const Data = () => {
 
               <button
                 className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-                // onClick={handleFlipHorizontal}
+                onClick={handleFlipHorizontal}
               >
                 <FlipHorizontal size={16} />
                 Flip horizontal
@@ -845,14 +935,14 @@ const Data = () => {
               <div className="flex justify-center mb-4">
                 <button
                   className="bg-editor-accent text-editor-dark font-medium px-4 py-1 rounded-lg"
-                  // onClick={handleApplyCrop}
+                  onClick={handleApplyCrop}
                 >
                   Apply Crop
                 </button>
               </div>
             )}
 
-            <div className="flex justify-center space-x-4">
+            {/* <div className="flex justify-center space-x-4">
               <button
                 className={`px-6 py-2 rounded-lg ${
                   activeTab === "rotation"
@@ -872,7 +962,7 @@ const Data = () => {
               >
                 Scale
               </button>
-            </div>
+            </div> */}
 
             {/* <div className="mt-4 px-8">
               <div className="relative w-full h-1 bg-white/20 rounded-full">
@@ -890,7 +980,21 @@ const Data = () => {
         );
       case "sticker":
         return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex justify-center mb-1"></div>
+
+            <div className="flex justify-center space-x-4 py-4">
+              {stickers.map((sticker) => (
+                <button
+                  key={sticker.id}
+                  className="text-4xl hover:scale-110 transition-transform"
+                  onClick={() => addSticker(sticker.emoji)}
+                >
+                  {sticker.emoji}
+                </button>
+              ))}
+            </div>
+          </div>
         );
       case "annotate":
         return (
@@ -974,12 +1078,12 @@ const Data = () => {
   // Sidebar Component
   const Sidebar = () => (
     <div className="w-20 bg-editor-sidebar border-r border-white/10 flex flex-col items-center py-4 overflow-y-auto">
-      <button className="sidebar-tool mb-2">
+      <button onClick={() => undo()} className="sidebar-tool mb-2">
         <RotateCcw className="sidebar-icon" />
         <span>Undo</span>
       </button>
 
-      <button className="sidebar-tool mb-2">
+      <button onClick={() => redo()} className="sidebar-tool mb-2">
         <Redo className="sidebar-icon" />
         <span>Redo</span>
       </button>
@@ -1000,46 +1104,46 @@ const Data = () => {
   );
 
   // // EditorToolbar Component
-  // const EditorToolbar = () => (
-  //   <div className="p-3 flex justify-center">
-  //     <div className="flex items-center gap-2">
-  //       <div className="flex items-center gap-2 mr-4">
-  //         <button
-  //           className="p-2 rounded-full hover:bg-white/10 transition-colors"
-  //           onClick={undo}
-  //         >
-  //           <RotateCcw size={18} className="text-white/70" />
-  //         </button>
-  //         <button
-  //           className="p-2 rounded-full hover:bg-white/10 transition-colors"
-  //           onClick={redo}
-  //         >
-  //           <Redo size={18} className="text-white/70" />
-  //         </button>
-  //       </div>
+  const EditorToolbar = () => (
+    <div className="p-3 flex justify-center">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mr-4">
+          <button
+            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            onClick={undo}
+          >
+            <RotateCcw size={18} className="text-white/70" />
+          </button>
+          <button
+            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            onClick={redo}
+          >
+            <Redo size={18} className="text-white/70" />
+          </button>
+        </div>
 
-  //       <div className="zoom-controls">
-  //         <button
-  //           className="hover:bg-white/10 p-1 rounded-full transition-colors"
-  //           onClick={handleZoomOut}
-  //         >
-  //           <Minus size={16} className="text-white/70" />
-  //         </button>
+        <div className="zoom-controls">
+          <button
+            className="hover:bg-white/10 p-1 rounded-full transition-colors"
+            onClick={handleZoomOut}
+          >
+            <Minus size={16} className="text-white/70" />
+          </button>
 
-  //         <span className="text-sm text-white/70 w-12 text-center">
-  //           {zoom}%
-  //         </span>
+          <span className="text-sm text-white/70 w-12 text-center">
+            {zoom}%
+          </span>
 
-  //         <button
-  //           className="hover:bg-white/10 p-1 rounded-full transition-colors"
-  //           onClick={handleZoomIn}
-  //         >
-  //           <Plus size={16} className="text-white/70" />
-  //         </button>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
+          <button
+            className="hover:bg-white/10 p-1 rounded-full transition-colors"
+            onClick={handleZoomIn}
+          >
+            <Plus size={16} className="text-white/70" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   // CanvasArea Component
   const CanvasArea = () => (
@@ -1088,7 +1192,7 @@ const Data = () => {
         <Sidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* <EditorToolbar /> */}
+          <EditorToolbar />
           <div className="flex-1 overflow-hidden flex justify-center items-center p-4 relative">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center z-10">

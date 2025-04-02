@@ -7,13 +7,16 @@ import {
   Minus,
   Plus,
   FlipHorizontal,
+  CopyPlus,
+  CopyX,
 } from "lucide-react";
 import {
   annotationTools,
   colors,
   filters,
+  frames,
   lineWidths,
-  stickers,
+  ShapesTools,
   tools,
 } from "./constant";
 
@@ -50,6 +53,10 @@ const Data = () => {
 
   const [imageFile, setImageFile] = useState(null);
   const [imageObj, setImageObj] = useState(null);
+
+  const [isShapeFilled, setIsShapeFilled] = useState(true);
+  const [shapeFill, setShapeFill] = useState("#000000");
+  const [activeFrame, setActiveFrame] = useState("None");
 
   const adjustments = [
     {
@@ -712,22 +719,102 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // Sticker panel: Add sticker
-  const addSticker = (emoji) => {
+  const applyMask = () => {
+    if (!canvas) return;
+    canvas.getObjects().forEach((obj) => {
+      if (obj.type !== "image") {
+        obj.set({ fill: "rgba(255,0,0,0.5)" });
+      }
+    });
+    canvas.renderAll();
+  };
+
+  const clearMasking = () => {
     if (!canvas) return;
 
-    const text = new fabric.Text(emoji, {
-      left: 100,
-      top: 100,
-      fontSize: 60,
-      fill: "#000000",
-      fontFamily:
-        "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Android Emoji, EmojiSymbols, EmojiOne Mozilla, Twemoji Mozilla, Segoe UI Symbol",
+    const activeObject = canvas.getActiveObject();
+    if (activeObject) {
+      activeObject.set({ fill: null });
+
+      activeObject.set({ opacity: 1 });
+      canvas.renderAll();
+    }
+  };
+
+  const applyFrame = (frameType) => {
+    if (!activeImage || !canvas) return;
+
+    // Clear existing frames
+    setActiveFrame(frameType);
+    canvas.getObjects("rect").forEach((obj) => {
+      if (obj.frame) canvas.remove(obj);
     });
 
-    canvas.add(text);
-    canvas.setActiveObject(text);
+    if (frameType === "None") return;
+
+    const frameStyles = {
+      Mat: { stroke: "gray", strokeWidth: 5 },
+      Bevel: { stroke: "lightgray", strokeWidth: 8 },
+      Line: { stroke: "black", strokeWidth: 2 },
+      Zebra: { stroke: "black", strokeWidth: 10, strokeDashArray: [5, 5] },
+      Lumber: { stroke: "brown", strokeWidth: 12 },
+      Inset: { stroke: "darkgray", strokeWidth: 6 },
+      Plus: { stroke: "black", strokeWidth: 4, strokeDashArray: [10, 5] },
+      Hook: { stroke: "black", strokeWidth: 3, strokeDashArray: [15, 5] },
+      Polaroid: { stroke: "white", strokeWidth: 15 },
+    };
+
+    const frameStyle = frameStyles[frameType] || {
+      stroke: "white",
+      strokeWidth: 10,
+    };
+
+    const frame = new fabric.Rect({
+      left: activeImage.left,
+      top: activeImage.top,
+      width: activeImage.width * activeImage.scaleX,
+      height: activeImage.height * activeImage.scaleY,
+      fill: "transparent",
+      ...frameStyle,
+      selectable: false,
+      frame: true,
+    });
+
+    canvas.add(frame);
+    canvas.renderAll();
     saveCanvasState();
+  };
+
+  const addShapes = (name) => {
+    if (!canvas) return;
+
+    switch (name) {
+      case "Rectangle":
+        const rect = new fabric.Rect({
+          left: 150,
+          top: 150,
+          width: 100,
+          height: 60,
+          fill: isShapeFilled ? shapeFill : "transparent",
+          stroke: "black",
+          strokeWidth: 2,
+        });
+        canvas.add(rect);
+        break;
+      case "Ellipse":
+        const circle = new fabric.Circle({
+          left: 200,
+          top: 200,
+          radius: 50,
+          fill: isShapeFilled ? shapeFill : "transparent",
+          stroke: "black",
+          strokeWidth: 2,
+        });
+        canvas.add(circle);
+        break;
+      default:
+        console.log("Shape not recognized.");
+    }
   };
 
   // Annotation: Handle tool select
@@ -941,56 +1028,89 @@ const Data = () => {
                 </button>
               </div>
             )}
-
-            {/* <div className="flex justify-center space-x-4">
-              <button
-                className={`px-6 py-2 rounded-lg ${
-                  activeTab === "rotation"
-                    ? "bg-editor-button"
-                    : "text-white/60"
-                }`}
-                onClick={() => setActiveTab("rotation")}
-              >
-                Rotation
-              </button>
-
-              <button
-                className={`px-6 py-2 rounded-lg ${
-                  activeTab === "scale" ? "bg-editor-button" : "text-white/60"
-                }`}
-                onClick={() => setActiveTab("scale")}
-              >
-                Scale
-              </button>
-            </div> */}
-
-            {/* <div className="mt-4 px-8">
-              <div className="relative w-full h-1 bg-white/20 rounded-full">
-                <div className="w-1 h-3 bg-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"></div>
-                <div className="flex justify-between text-white/60 text-xs mt-2">
-                  <span>-90°</span>
-                  <span>-45°</span>
-                  <span>0°</span>
-                  <span>45°</span>
-                  <span>90°</span>
-                </div>
-              </div>
-            </div> */}
           </div>
         );
-      case "sticker":
+      case "masking":
+        return (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex justify-center items-center gap-4">
+              <button
+                className="flex items-center gap-2 px-4 py-2  text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
+                onClick={applyMask}
+              >
+                <CopyPlus size={20} />
+                <span className="text-sm font-medium">Add Masking</span>
+              </button>
+
+              <button
+                className="flex items-center gap-2 px-4 py-2 text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
+                onClick={clearMasking}
+              >
+                <CopyX size={20} />
+                <span className="text-sm font-medium">Clear Masking</span>
+              </button>
+            </div>
+          </div>
+        );
+      case "frame":
+        return (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
+            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
+              {frames.map((frame) => (
+                <button
+                  key={frame.id}
+                  className={`filter-btn ${
+                    activeFrame === frame.name ? "active" : ""
+                  }`}
+                  onClick={() => applyFrame(frame.name)}
+                >
+                  <div className={`frame-img`}>
+                    <span className="text-xs text-white/80">{frame.name}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      case "shapes":
         return (
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
             <div className="flex justify-center mb-1"></div>
-
+            <div className="text-white/80 flex justify-center gap-4">
+              <div className="flex items-center justify-center gap-2">
+                <div>Fill Shape:</div>
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={isShapeFilled}
+                    onChange={() => setIsShapeFilled(!isShapeFilled)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  ></input>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div>Shape Fill color:</div>
+                <div>
+                  <input
+                    type="color"
+                    class="p-1 h-10 w-14 block bg-white border border-gray-200 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700"
+                    value={shapeFill}
+                    onChange={(e) => setShapeFill(e.target.value)}
+                  ></input>
+                </div>
+              </div>
+            </div>
             <div className="flex justify-center space-x-4 py-4">
-              {stickers.map((sticker) => (
+              {ShapesTools.map((shapes) => (
                 <button
-                  key={sticker.id}
-                  className="text-4xl hover:scale-110 transition-transform"
-                  onClick={() => addSticker(sticker.emoji)}
+                  key={shapes.id}
+                  className={`annotation-btn text-white/10 rounded-2xl ${
+                    annotationTool === shapes.id ? "bg-white/10" : ""
+                  }`}
+                  onClick={() => addShapes(shapes.name)}
                 >
-                  {sticker.emoji}
+                  {shapes.icon}
+                  <span className="text-sm text-white/80">{shapes.name}</span>
                 </button>
               ))}
             </div>

@@ -1,24 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { fabric } from "fabric";
-import {
-  Crop,
-  RotateCcw,
-  Redo,
-  Minus,
-  Plus,
-  FlipHorizontal,
-  CopyPlus,
-  CopyX,
-} from "lucide-react";
-import {
-  annotationTools,
-  colors,
-  filters,
-  frames,
-  lineWidths,
-  ShapesTools,
-  tools,
-} from "./constant";
+import { lineWidths } from "./constant";
+import EditorToolbar from "./components/EditorToolbar";
+import Sidebar from "./components/Sidebar";
+import ActivePanel from "./components/ActivePanel";
 
 const Data = () => {
   // Main canvas state
@@ -42,7 +27,6 @@ const Data = () => {
   const [cropMode, setCropMode] = useState(false);
   const [cropRect, setCropRect] = useState(null);
   const [angle, setAngle] = useState(0);
-  const [activeTab, setActiveTab] = useState("rotation");
 
   // Annotate panel state
   const [annotationTool, setAnnotationTool] = useState("sharpie");
@@ -57,36 +41,6 @@ const Data = () => {
   const [isShapeFilled, setIsShapeFilled] = useState(true);
   const [shapeFill, setShapeFill] = useState("#000000");
   const [activeFrame, setActiveFrame] = useState("None");
-
-  const adjustments = [
-    {
-      id: "brightness",
-      name: "Brightness",
-      value: brightness,
-      setValue: setBrightness,
-      min: -1,
-      max: 1,
-      step: 0.1,
-    },
-    {
-      id: "contrast",
-      name: "Contrast",
-      value: contrast,
-      setValue: setContrast,
-      min: -1,
-      max: 1,
-      step: 0.1,
-    },
-    {
-      id: "saturation",
-      name: "Saturation",
-      value: saturation,
-      setValue: setSaturation,
-      min: -1,
-      max: 1,
-      step: 0.1,
-    },
-  ];
 
   // Initialize canvas
   useEffect(() => {
@@ -559,8 +513,6 @@ const Data = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // toast.success("Image saved successfully!");
   };
 
   // Filter panel: Apply filter
@@ -575,7 +527,6 @@ const Data = () => {
     setSaturation(0);
 
     // Color filters
-
     switch (filterId) {
       case "chrome":
         activeImage.filters.push(
@@ -628,6 +579,8 @@ const Data = () => {
           new fabric.Image.filters.Brightness({ brightness: 0.2 })
         );
         break;
+      default:
+        return null;
     }
 
     activeImage.applyFilters();
@@ -635,7 +588,6 @@ const Data = () => {
     activeImage.filters = [];
 
     // Apply the selected filter
-
     canvas.renderAll();
     saveCanvasState();
   };
@@ -668,7 +620,6 @@ const Data = () => {
   };
 
   // handleApplyCrop
-
   const handleApplyCrop = () => {
     if (!canvas || !imageObj || !cropRect) return;
 
@@ -930,363 +881,6 @@ const Data = () => {
     };
   }, [canvas, undo, redo, saveCanvasState, activeImage]);
 
-  // // Render specific panel based on active tool
-  const renderActivePanel = () => {
-    if (!expandedPanel || !canvas) return null;
-
-    switch (expandedPanel) {
-      case "filter":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  className={`filter-btn ${
-                    activeFilter === filter.id ? "active" : ""
-                  }`}
-                  onClick={() => applyFilter(filter.id)}
-                >
-                  <div className="filter-img bg-gray-300"></div>
-                  <span className="text-xs text-white/80">{filter.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case "adjust":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex flex-col items-center mb-4">
-              <div className="flex flex-wrap justify-center mb-2">
-                {adjustments.map((adjustment) => (
-                  <div key={adjustment.id} className="px-4 py-2">
-                    <div className="text-white/80 text-sm mb-1">
-                      {adjustment.name}
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="range"
-                        min={adjustment.min}
-                        max={adjustment.max}
-                        step={adjustment.step}
-                        value={adjustment.value}
-                        onChange={(e) =>
-                          handleAdjustmentChange(
-                            adjustment,
-                            parseFloat(e.target.value)
-                          )
-                        }
-                        className="w-32 h-2 bg-editor-button rounded-lg appearance-none cursor-pointer"
-                      />
-                      <span className="text-white/70 text-xs ml-2">
-                        {adjustment.value.toFixed(1)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      case "crop":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center items-center mb-4">
-              <button
-                className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-                onClick={handleRotateLeft}
-              >
-                <RotateCcw size={16} />
-                Rotate left
-              </button>
-
-              <button
-                className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-                onClick={handleFlipHorizontal}
-              >
-                <FlipHorizontal size={16} />
-                Flip horizontal
-              </button>
-
-              <button
-                className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-                onClick={() => setCropMode(!cropMode)}
-              >
-                <Crop size={16} />
-                {cropMode ? "Cancel Crop" : "Crop shape"}
-              </button>
-            </div>
-
-            {cropMode && (
-              <div className="flex justify-center mb-4">
-                <button
-                  className="bg-editor-accent text-editor-dark font-medium px-4 py-1 rounded-lg"
-                  onClick={handleApplyCrop}
-                >
-                  Apply Crop
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      case "masking":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center items-center gap-4">
-              <button
-                className="flex items-center gap-2 px-4 py-2  text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
-                onClick={applyMask}
-              >
-                <CopyPlus size={20} />
-                <span className="text-sm font-medium">Add Masking</span>
-              </button>
-
-              <button
-                className="flex items-center gap-2 px-4 py-2 text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
-                onClick={clearMasking}
-              >
-                <CopyX size={20} />
-                <span className="text-sm font-medium">Clear Masking</span>
-              </button>
-            </div>
-          </div>
-        );
-      case "frame":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center space-x-3 overflow-x-auto pb-2 pt-1">
-              {frames.map((frame) => (
-                <button
-                  key={frame.id}
-                  className={`filter-btn ${
-                    activeFrame === frame.name ? "active" : ""
-                  }`}
-                  onClick={() => applyFrame(frame.name)}
-                >
-                  <div className={`frame-img`}>
-                    <span className="text-xs text-white/80">{frame.name}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case "shapes":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center mb-1"></div>
-            <div className="text-white/80 flex justify-center gap-4">
-              <div className="flex items-center justify-center gap-2">
-                <div>Fill Shape:</div>
-                <div>
-                  <input
-                    type="checkbox"
-                    checked={isShapeFilled}
-                    onChange={() => setIsShapeFilled(!isShapeFilled)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                  ></input>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <div>Shape Fill color:</div>
-                <div>
-                  <input
-                    type="color"
-                    class="p-1 h-10 w-14 block bg-white border border-gray-200 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700"
-                    value={shapeFill}
-                    onChange={(e) => setShapeFill(e.target.value)}
-                  ></input>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-center space-x-4 py-4">
-              {ShapesTools.map((shapes) => (
-                <button
-                  key={shapes.id}
-                  className={`annotation-btn text-white/10 rounded-2xl ${
-                    annotationTool === shapes.id ? "bg-white/10" : ""
-                  }`}
-                  onClick={() => addShapes(shapes.name)}
-                >
-                  {shapes.icon}
-                  <span className="text-sm text-white/80">{shapes.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case "annotate":
-        return (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-            <div className="flex justify-center items-center gap-4 mb-2">
-              <div className="text-white/70 text-sm">line color</div>
-              <div className="h-8 w-8 rounded-full border-2 border-white overflow-hidden">
-                <div
-                  className="w-full h-full"
-                  style={{ backgroundColor: lineColor }}
-                ></div>
-              </div>
-
-              <div className="ml-4 text-white/70 text-sm">line width</div>
-              <div className="relative">
-                <select
-                  value={lineWidth}
-                  onChange={(e) => handleLineWidthChange(e.target.value)}
-                  className="appearance-none bg-editor-button text-white px-3 py-1 rounded-lg pr-8"
-                >
-                  {lineWidths.map((width) => (
-                    <option key={width.id} value={width.id}>
-                      {width.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg
-                    width="10"
-                    height="6"
-                    viewBox="0 0 10 6"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 1L5 5L9 1"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center space-x-2 mt-3">
-              {annotationTools.map((tool) => (
-                <button
-                  key={tool.id}
-                  className={`annotation-btn ${
-                    annotationTool === tool.id ? "bg-white/10" : ""
-                  }`}
-                  onClick={() => handleAnnotationToolSelect(tool.id)}
-                >
-                  {tool.icon}
-                  <span className="text-sm text-white/80">{tool.name}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-center space-x-2 mt-4">
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  className={`w-8 h-8 rounded-full ${
-                    lineColor === color ? "ring-2 ring-white" : ""
-                  }`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => handleColorChange(color)}
-                ></button>
-              ))}
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Sidebar Component
-  const Sidebar = () => (
-    <div className="w-20 bg-editor-sidebar border-r border-white/10 flex flex-col items-center py-4 overflow-y-auto">
-      <button onClick={() => undo()} className="sidebar-tool mb-2">
-        <RotateCcw className="sidebar-icon" />
-        <span>Undo</span>
-      </button>
-
-      <button onClick={() => redo()} className="sidebar-tool mb-2">
-        <Redo className="sidebar-icon" />
-        <span>Redo</span>
-      </button>
-
-      <div className="w-10 h-px bg-white/10 my-2"></div>
-
-      {tools.map((tool) => (
-        <button
-          key={tool.id}
-          className={`sidebar-tool ${activeTool === tool.id ? "active" : ""}`}
-          onClick={() => handleToolSelect(tool.id)}
-        >
-          {tool.icon}
-          <span>{tool.name}</span>
-        </button>
-      ))}
-    </div>
-  );
-
-  // // EditorToolbar Component
-  const EditorToolbar = () => (
-    <div className="p-3 flex justify-center">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 mr-4">
-          <button
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
-            onClick={undo}
-          >
-            <RotateCcw size={18} className="text-white/70" />
-          </button>
-          <button
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
-            onClick={redo}
-          >
-            <Redo size={18} className="text-white/70" />
-          </button>
-        </div>
-
-        <div className="zoom-controls">
-          <button
-            className="hover:bg-white/10 p-1 rounded-full transition-colors"
-            onClick={handleZoomOut}
-          >
-            <Minus size={16} className="text-white/70" />
-          </button>
-
-          <span className="text-sm text-white/70 w-12 text-center">
-            {zoom}%
-          </span>
-
-          <button
-            className="hover:bg-white/10 p-1 rounded-full transition-colors"
-            onClick={handleZoomIn}
-          >
-            <Plus size={16} className="text-white/70" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // CanvasArea Component
-  const CanvasArea = () => (
-    <div className="flex-1 overflow-hidden flex justify-center items-center p-4 relative">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div className="w-10 h-10 border-4 border-editor-accent border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
-
-      <div className=" animate-fade-in">
-        <canvas ref={canvasRef} className="shadow-lg" />
-      </div>
-
-      {!loading && !canvasRef.current && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-          <p className="text-lg mb-3">No image loaded</p>
-          <p className="text-sm">Upload an image to get started</p>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col">
       <div className="px-4 py-3 flex justify-between items-center border-b border-white/10">
@@ -1309,10 +903,21 @@ const Data = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar />
+        <Sidebar
+          undo={undo}
+          redo={redo}
+          activeTool={activeTool}
+          handleToolSelect={handleToolSelect}
+        />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <EditorToolbar />
+          <EditorToolbar
+            undo={undo}
+            redo={redo}
+            handleZoomOut={handleZoomOut}
+            zoom={zoom}
+            handleZoomIn={handleZoomIn}
+          />
           <div className="flex-1 overflow-hidden flex justify-center items-center p-4 relative">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -1332,7 +937,41 @@ const Data = () => {
                 </div>
               ))}
           </div>
-          {renderActivePanel()}
+          {
+            <ActivePanel
+              expandedPanel={expandedPanel}
+              canvas={canvas}
+              activeFilter={activeFilter}
+              applyFilter={applyFilter}
+              handleAdjustmentChange={handleAdjustmentChange}
+              handleRotateLeft={handleRotateLeft}
+              handleFlipHorizontal={handleFlipHorizontal}
+              setCropMode={setCropMode}
+              cropMode={cropMode}
+              handleApplyCrop={handleApplyCrop}
+              applyMask={applyMask}
+              clearMasking={clearMasking}
+              activeFrame={activeFrame}
+              applyFrame={applyFrame}
+              isShapeFilled={isShapeFilled}
+              setIsShapeFilled={setIsShapeFilled}
+              shapeFill={shapeFill}
+              setShapeFill={setShapeFill}
+              annotationTool={annotationTool}
+              addShapes={addShapes}
+              lineColor={lineColor}
+              lineWidth={lineWidth}
+              handleLineWidthChange={handleLineWidthChange}
+              handleAnnotationToolSelect={handleAnnotationToolSelect}
+              handleColorChange={handleColorChange}
+              brightness={brightness}
+              setBrightness={setBrightness}
+              contrast={contrast}
+              setContrast={setContrast}
+              saturation={saturation}
+              setSaturation={setSaturation}
+            />
+          }
         </div>
       </div>
     </div>

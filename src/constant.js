@@ -26,18 +26,17 @@ export const filters = [
 ];
 
 export const frames = [
-  { id: 'None', name: 'None' },
-  { id: 'Mat', name: 'Mat' },
-  { id: 'Bevel', name: 'Bevel' },
-  { id: 'Line', name: 'Line' },
-  { id: 'Zebra', name: 'Zebra' },
-  { id: 'Lumber', name: 'Lumber' },
-  { id: 'Inset', name: 'Inset' },
-  { id: 'Plus', name: 'Plus' },
-  { id: 'Hook', name: 'Hook' },
-  { id: 'Polaroid', name: 'Polaroid' }
+  { id: "None", name: "None" },
+  { id: "Mat", name: "Mat" },
+  { id: "Bevel", name: "Bevel" },
+  { id: "Line", name: "Line" },
+  { id: "Zebra", name: "Zebra" },
+  { id: "Lumber", name: "Lumber" },
+  { id: "Inset", name: "Inset" },
+  { id: "Plus", name: "Plus" },
+  { id: "Hook", name: "Hook" },
+  { id: "Polaroid", name: "Polaroid" },
 ];
-
 
 export const tools = [
   { id: "crop", name: "Crop", icon: <Crop className="sidebar-icon" /> },
@@ -53,15 +52,15 @@ export const tools = [
     icon: <Pencil className="sidebar-icon" />,
   },
   {
-      id: "shapes",
-      name: "Shapes",
-      icon: <Shapes className="sidebar-icon" />,
-    },
-    {
-      id: "masking",
-      name: "Masking",
-      icon: <Drama className="sidebar-icon" />,
-    },
+    id: "shapes",
+    name: "Shapes",
+    icon: <Shapes className="sidebar-icon" />,
+  },
+  {
+    id: "masking",
+    name: "Masking",
+    icon: <Drama className="sidebar-icon" />,
+  },
   {
     id: "frame",
     name: "Frame",

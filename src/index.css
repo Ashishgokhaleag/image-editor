@@ -87,3 +87,30 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+@layer components {
+  .mask-button {
+    @apply flex items-center justify-center px-4 py-2.5 
+           rounded-lg font-medium text-sm
+           transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-editor-dark;
+  }
+
+  .mask-button-primary {
+    @apply mask-button bg-editor-accent text-white 
+           hover:bg-editor-accent/90
+           focus:ring-editor-accent/50;
+  }
+
+  .mask-button-secondary {
+    @apply mask-button bg-editor-accent/10 text-editor-accent 
+           hover:bg-editor-accent/20
+           focus:ring-editor-accent/30;
+  }
+
+  .mask-button-danger {
+    @apply mask-button bg-red-500/10 text-red-400
+           hover:bg-red-500/20
+           focus:ring-red-500/30;
+  }
+} 

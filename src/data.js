@@ -4,6 +4,7 @@ import { lineWidths } from "./constant";
 import EditorToolbar from "./components/EditorToolbar";
 import Sidebar from "./components/Sidebar";
 import ActivePanel from "./components/ActivePanel";
+import MaskingPanel from './components/MaskingPanel';
 
 const Data = () => {
   // Main canvas state
@@ -41,15 +42,22 @@ const Data = () => {
   const [isShapeFilled, setIsShapeFilled] = useState(true);
   const [shapeFill, setShapeFill] = useState("#000000");
   const [activeFrame, setActiveFrame] = useState("None");
+  const [resolution, setResolution] = useState("standard"); // 'standard' or 'hd'
+  const resolutions = {
+    standard: { width: 1280, height: 720 },
+    hd: { width: 1920, height: 1080 },
+  };
+
+  // Add new state for masking
+  const [maskingMode, setMaskingMode] = useState(false);
 
   // Initialize canvas
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-      width:
-        window.innerWidth > 1200 ? 800 : Math.min(window.innerWidth - 10, 600),
-      height: window.innerWidth > 1200 ? 500 : 500,
+      width: resolutions[resolution].width,
+      height: resolutions[resolution].height,
       backgroundColor: "#f0f0f0",
       preserveObjectStacking: true,
       selection: true,
@@ -59,11 +67,8 @@ const Data = () => {
     setCanvas(fabricCanvas);
 
     const handleResize = () => {
-      const width =
-        window.innerWidth > 1200
-          ? 1000
-          : Math.min(window.innerWidth - 100, 800);
-      const height = window.innerWidth > 1200 ? 600 : 500;
+      const width = resolutions[resolution].width;
+      const height = resolutions[resolution].height;
 
       fabricCanvas.setWidth(width);
       fabricCanvas.setHeight(height);
@@ -77,10 +82,17 @@ const Data = () => {
       fabricCanvas.dispose();
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [resolution]);
+
+  useEffect(() => {
+    if (expandedPanel === "annotate") {
+      setAnnotationTool("sharpie");
+    } else {
+      setAnnotationTool("");
+    }
+  }, [expandedPanel]);
 
   // Save canvas state to history
-
   const saveCanvasState = useCallback(() => {
     if (!canvas) return;
 
@@ -111,7 +123,7 @@ const Data = () => {
     [canvas, history]
   );
 
-  // // Setup canvas events
+  // Setup canvas events
   useEffect(() => {
     if (!canvas) return;
 
@@ -154,16 +166,13 @@ const Data = () => {
     reader.onload = (e) => {
       fabric.Image.fromURL(e.target.result, (img) => {
         canvas.clear();
-        img.set({ left: 0, top: 0, selectable: false });
-        img.scaleToWidth(canvas.width * 1);
-        img.scaleToHeight(canvas.height * 1);
-        canvas.add(img);
-        canvas.sendToBack(img);
-        setImageObj(img); // S
+        setImageObj(img);
+        scaleImage(img);
       });
     };
     reader.readAsDataURL(file);
   };
+
   useEffect(() => {
     if (!canvas) return;
 
@@ -187,13 +196,15 @@ const Data = () => {
     if (tool === activeTool) {
       setActiveTool("");
       setExpandedPanel(null);
+      setMaskingMode(false);
     } else {
       setActiveTool(tool);
       setExpandedPanel(tool);
+      setMaskingMode(tool === 'masking');
     }
   };
 
-  // tool code after solving inifinite text renders
+  // Tool code after solving infinite text renders
   useEffect(() => {
     if (!canvas) return;
 
@@ -498,7 +509,39 @@ const Data = () => {
     handleZoom(newZoom);
   };
 
-  // // Handle save image
+  const scaleImage = (img) => {
+    const { width, height } = resolutions[resolution];
+
+    const scaleFactor = Math.min(width / img.width, height / img.height);
+    img.scale(scaleFactor);
+    img.set({
+      left: (width - img.getScaledWidth()) / 2,
+      top: (height - img.getScaledHeight()) / 2,
+    });
+
+    // Ensure the image is sent to the back and rendered
+    canvas.add(img);
+    canvas.sendToBack(img);
+    canvas.renderAll();
+  };
+
+  const changeResolution = (res) => {
+    if (!canvas) return;
+
+    const { width, height } = resolutions[res];
+    canvas.setWidth(width);
+    canvas.setHeight(height);
+
+    if (imageObj) {
+      // Adjust the image scaling to fit the new resolution
+      scaleImage(imageObj);
+      canvas.renderAll();
+    }
+
+    setResolution(res);
+  };
+
+  // Handle save image
   const handleSaveImage = () => {
     if (!canvas) return;
 
@@ -592,13 +635,13 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // // Filter panel: Handle adjustment change
+  // Filter panel: Handle adjustment change
   const handleAdjustmentChange = (adjustment, value) => {
     adjustment.setValue(value);
     applyAdjustments();
   };
 
-  // // Annotate panel: Apply crop
+  // Annotate panel: Apply crop
   const handleRotateLeft = () => {
     if (!activeImage) return;
 
@@ -610,7 +653,7 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // // Annotate panel: Flip horizontal
+  // Annotate panel: Flip horizontal
   const handleFlipHorizontal = () => {
     if (!activeImage) return;
 
@@ -793,7 +836,7 @@ const Data = () => {
     }
   };
 
-  // // Annotation: Handle line width change
+  // Annotation: Handle line width change
   const handleLineWidthChange = (width) => {
     setLineWidth(width);
 
@@ -811,7 +854,7 @@ const Data = () => {
     }
   };
 
-  // handle adjustments
+  // Handle adjustments
   const applyAdjustments = () => {
     if (!activeImage) return;
 
@@ -846,7 +889,7 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // // Handle keyboard shortcuts
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Undo: Ctrl+Z
@@ -867,9 +910,13 @@ const Data = () => {
       // Delete selected object: Delete or Backspace
       if ((e.key === "Delete" || e.key === "Backspace") && canvas) {
         const activeObject = canvas.getActiveObject();
-        if (activeObject && activeObject !== activeImage) {
-          canvas.remove(activeObject);
-          saveCanvasState();
+        if (activeObject) {
+          if (activeObject.type === "i-text" && activeObject.isEditing) {
+            return;
+          } else if (activeObject !== activeImage) {
+            canvas.remove(activeObject);
+            saveCanvasState();
+          }
         }
       }
     };
@@ -880,6 +927,102 @@ const Data = () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [canvas, undo, redo, saveCanvasState, activeImage]);
+
+  const removeMask = () => {
+    if (!canvas || !activeImage) return;
+    
+    const maskObject = canvas.getObjects().find(obj => obj.clipPath === activeImage);
+    if (maskObject) {
+      canvas.remove(maskObject);
+      canvas.renderAll();
+      saveCanvasState();
+    }
+  };
+
+  const adjustMaskPosition = (maskObj) => {
+    if (!activeImage) return;
+    
+    // Ensure mask stays aligned with base image
+    const baseLeft = activeImage.left;
+    const baseTop = activeImage.top;
+    
+    maskObj.set({
+      left: baseLeft,
+      top: baseTop
+    });
+  };
+
+  // Add to your useEffect for canvas events
+  useEffect(() => {
+    if (!canvas) return;
+
+    const handleObjectMoving = (e) => {
+      const obj = e.target;
+      if (obj.clipPath === activeImage) {
+        adjustMaskPosition(obj);
+      }
+    };
+
+    canvas.on('object:moving', handleObjectMoving);
+
+    return () => {
+      canvas.off('object:moving', handleObjectMoving);
+    };
+  }, [canvas, activeImage]);
+
+  const setupMaskingInteractions = useCallback(() => {
+    if (!canvas) return;
+
+    const handleMaskScaling = (e) => {
+      const obj = e.target;
+      if (obj && obj.type === 'image' && obj !== activeImage) {
+        // Ensure minimum size
+        const minScale = 0.1;
+        obj.scaleX = Math.max(obj.scaleX, minScale);
+        obj.scaleY = Math.max(obj.scaleY, minScale);
+      }
+    };
+
+    const handleMaskMoving = (e) => {
+      const obj = e.target;
+      if (obj && obj.type === 'image' && obj !== activeImage) {
+        // Keep mask within canvas bounds
+        const bound = obj.getBoundingRect();
+        if (bound.left < 0) {
+          obj.left = obj.left - bound.left;
+        }
+        if (bound.top < 0) {
+          obj.top = obj.top - bound.top;
+        }
+        if (bound.left + bound.width > canvas.width) {
+          obj.left = canvas.width - bound.width;
+        }
+        if (bound.top + bound.height > canvas.height) {
+          obj.top = canvas.height - bound.height;
+        }
+      }
+    };
+
+    canvas.on('object:scaling', handleMaskScaling);
+    canvas.on('object:moving', handleMaskMoving);
+    canvas.on('object:modified', saveCanvasState);
+
+    return () => {
+      canvas.off('object:scaling', handleMaskScaling);
+      canvas.off('object:moving', handleMaskMoving);
+      canvas.off('object:modified', saveCanvasState);
+    };
+  }, [canvas, activeImage, saveCanvasState]);
+
+  // Add this useEffect to handle masking interactions
+  useEffect(() => {
+    if (maskingMode) {
+      const cleanup = setupMaskingInteractions();
+      return () => {
+        if (cleanup) cleanup();
+      };
+    }
+  }, [maskingMode, setupMaskingInteractions]);
 
   return (
     <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col">
@@ -893,6 +1036,18 @@ const Data = () => {
           onChange={handleImageUpload}
         />
         <div className="flex gap-3">
+          <div className="flex items-center justify-center space-x-4">
+            <select
+              id="resolution"
+              value={resolution}
+              onChange={(e) => changeResolution(e.target.value)}
+              className="block w-48 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-white text-gray-700 text-sm"
+            >
+              <option value="standard">Standard (1280x720)</option>
+              <option value="hd">HD (1920x1080)</option>
+            </select>
+          </div>
+
           <label htmlFor="image-upload" className="tool-btn">
             Upload Image
           </label>
@@ -925,7 +1080,7 @@ const Data = () => {
               </div>
             )}
 
-            <div className=" animate-fade-in  ">
+            <div className="animate-fade-in">
               <canvas ref={canvasRef} className="" />
             </div>
 
@@ -972,6 +1127,12 @@ const Data = () => {
               setSaturation={setSaturation}
             />
           }
+          {expandedPanel === 'masking' && (
+            <MaskingPanel
+              canvas={canvas}
+              activeImage={activeImage}
+            />
+          )}
         </div>
       </div>
     </div>

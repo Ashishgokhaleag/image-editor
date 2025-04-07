@@ -7,7 +7,30 @@ import {
   lineWidths,
   ShapesTools,
 } from "../constant";
-import { CopyPlus, CopyX, Crop, FlipHorizontal, RotateCcw } from "lucide-react";
+import { Crop, FlipHorizontal, RotateCcw } from "lucide-react";
+import { ImageMasking } from "./imageMaking";
+import "./editor.styles.css";
+
+const styles = {
+  filterImg: {
+    width: "60px",
+    height: "60px",
+    borderRadius: "8px",
+    overflow: "hidden",
+    backgroundColor: "#333",
+    marginBottom: "4px",
+    position: "relative",
+  },
+  frameImg: {
+    width: "60px",
+    height: "60px",
+    borderRadius: "8px",
+    overflow: "hidden",
+    backgroundColor: "#333",
+    marginBottom: "4px",
+    position: "relative",
+  },
+};
 
 const ActivePanel = ({
   expandedPanel,
@@ -41,6 +64,7 @@ const ActivePanel = ({
   setContrast,
   saturation,
   setSaturation,
+  activeImage,
 }) => {
   if (!expandedPanel || !canvas) return null;
 
@@ -74,6 +98,40 @@ const ActivePanel = ({
     },
   ];
 
+  const getFilterStyle = (filterId) => {
+    switch (filterId) {
+      case "chrome":
+        return "contrast(110%) saturate(130%)";
+      case "fade":
+        return "contrast(85%) saturate(80%) brightness(105%)";
+      case "cold":
+        return "saturate(110%) contrast(110%) hue-rotate(10deg)";
+      case "warm":
+        return "saturate(120%) brightness(105%) sepia(20%)";
+      case "pastel":
+        return "saturate(70%) brightness(110%)";
+      case "mono":
+        return "grayscale(100%)";
+      case "noir":
+        return "grayscale(100%) contrast(130%)";
+      case "stark":
+        return "contrast(150%) saturate(80%)";
+      case "wash":
+        return "contrast(80%) brightness(120%)";
+      default:
+        return "none";
+    }
+  };
+
+  const imageUrl =
+    canvas && canvas.getObjects().find((obj) => obj.type === "image")
+      ? canvas.toDataURL({
+          format: "png",
+          quality: 0.5,
+          multiplier: 0.2,
+        })
+      : "";
+
   switch (expandedPanel) {
     case "filter":
       return (
@@ -87,13 +145,26 @@ const ActivePanel = ({
                 }`}
                 onClick={() => applyFilter(filter.id)}
               >
-                <div className="filter-img bg-gray-300"></div>
+                <div className="filter-img relative" style={styles.filterImg}>
+                  {imageUrl && (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: `url(${imageUrl})`,
+                        filter: getFilterStyle(filter.id),
+                        width: "100%",
+                        height: "100%",
+                      }}
+                    />
+                  )}
+                </div>
                 <span className="text-xs text-white/80">{filter.name}</span>
               </button>
             ))}
           </div>
         </div>
       );
+
     case "adjust":
       return (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
@@ -172,25 +243,12 @@ const ActivePanel = ({
       );
     case "masking":
       return (
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-          <div className="flex justify-center items-center gap-4">
-            <button
-              className="flex items-center gap-2 px-4 py-2  text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
-              onClick={applyMask}
-            >
-              <CopyPlus size={20} />
-              <span className="text-sm font-medium">Add Masking</span>
-            </button>
-
-            <button
-              className="flex items-center gap-2 px-4 py-2 text-white bg-gray-700 rounded-3xl hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300"
-              onClick={clearMasking}
-            >
-              <CopyX size={20} />
-              <span className="text-sm font-medium">Clear Masking</span>
-            </button>
-          </div>
-        </div>
+        <ImageMasking
+          activeImage={activeImage}
+          canvas={canvas}
+          applyMask={applyMask}
+          clearMasking={clearMasking}
+        />
       );
     case "frame":
       return (

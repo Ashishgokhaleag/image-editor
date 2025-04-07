@@ -23,6 +23,11 @@ export const filters = [
   { id: "noir", name: "Noir" },
   { id: "stark", name: "Stark" },
   { id: "wash", name: "Wash" },
+  { id: "vintage", name: "Vintage" },
+  { id: "sepia", name: "Sepia" },
+  { id: "invert", name: "Invert" },
+  { id: "brightnessBoost", name: "B Boost" },
+  { id: "contrastBoost", name: "C Boost" },
 ];
 
 export const frames = [
@@ -94,17 +99,6 @@ export const colors = [
   "#ffff00", // yellow
   "#ff00ff", // magenta
   "#00ffff", // cyan
-];
-
-export const stickers = [
-  { id: "star", emoji: "⭐" },
-  { id: "smile", emoji: "😀" },
-  { id: "thumbsup", emoji: "👍" },
-  { id: "thumbsdown", emoji: "👎" },
-  { id: "palette", emoji: "🎨" },
-  { id: "paint", emoji: "🖌️" },
-  { id: "sun", emoji: "☀️" },
-  { id: "cloud", emoji: "☁️" },
 ];
 
 //   export const shapes = [

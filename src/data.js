@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { fabric } from "fabric";
 import { lineWidths } from "./constant";
 import EditorToolbar from "./components/EditorToolbar";
 import Sidebar from "./components/Sidebar";
 import ActivePanel from "./components/ActivePanel";
-import MaskingPanel from './components/MaskingPanel';
 
 const Data = () => {
   // Main canvas state
@@ -161,6 +160,7 @@ const Data = () => {
     if (!file || !canvas) return;
 
     setImageFile(file);
+    setLoading(true);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -168,6 +168,8 @@ const Data = () => {
         canvas.clear();
         setImageObj(img);
         scaleImage(img);
+        setLoading(false);
+        saveCanvasState();
       });
     };
     reader.readAsDataURL(file);
@@ -200,7 +202,7 @@ const Data = () => {
     } else {
       setActiveTool(tool);
       setExpandedPanel(tool);
-      setMaskingMode(tool === 'masking');
+      setMaskingMode(tool === "masking");
     }
   };
 
@@ -533,10 +535,29 @@ const Data = () => {
     canvas.setHeight(height);
 
     if (imageObj) {
+      // Create a clone of the image object to ensure it's properly redrawn
+      const imgClone = fabric.util.object.clone(imageObj);
+      canvas.clear();
+
       // Adjust the image scaling to fit the new resolution
-      scaleImage(imageObj);
+      const scaleFactor = Math.min(
+        width / imgClone.width,
+        height / imgClone.height
+      );
+      imgClone.scale(scaleFactor);
+      imgClone.set({
+        left: (width - imgClone.getScaledWidth()) / 2,
+        top: (height - imgClone.getScaledHeight()) / 2,
+      });
+
+      canvas.add(imgClone);
+      canvas.sendToBack(imgClone);
+      setImageObj(imgClone);
       canvas.renderAll();
+      saveCanvasState();
     }
+
+    console.log("res>>>", res);
 
     setResolution(res);
   };
@@ -620,6 +641,29 @@ const Data = () => {
         activeImage.filters.push(
           new fabric.Image.filters.Contrast({ contrast: -0.2 }),
           new fabric.Image.filters.Brightness({ brightness: 0.2 })
+        );
+        break;
+      case "vintage":
+        activeImage.filters.push(
+          new fabric.Image.filters.Saturation({ saturation: -0.5 }),
+          new fabric.Image.filters.Contrast({ contrast: 0.2 }),
+          new fabric.Image.filters.Brightness({ brightness: 0.1 })
+        );
+        break;
+      case "sepia":
+        activeImage.filters.push(new fabric.Image.filters.Sepia());
+        break;
+      case "invert":
+        activeImage.filters.push(new fabric.Image.filters.Invert());
+        break;
+      case "brightnessBoost":
+        activeImage.filters.push(
+          new fabric.Image.filters.Brightness({ brightness: 0.3 })
+        );
+        break;
+      case "contrastBoost":
+        activeImage.filters.push(
+          new fabric.Image.filters.Contrast({ contrast: 0.4 })
         );
         break;
       default:
@@ -930,8 +974,10 @@ const Data = () => {
 
   const removeMask = () => {
     if (!canvas || !activeImage) return;
-    
-    const maskObject = canvas.getObjects().find(obj => obj.clipPath === activeImage);
+
+    const maskObject = canvas
+      .getObjects()
+      .find((obj) => obj.clipPath === activeImage);
     if (maskObject) {
       canvas.remove(maskObject);
       canvas.renderAll();
@@ -941,14 +987,14 @@ const Data = () => {
 
   const adjustMaskPosition = (maskObj) => {
     if (!activeImage) return;
-    
+
     // Ensure mask stays aligned with base image
     const baseLeft = activeImage.left;
     const baseTop = activeImage.top;
-    
+
     maskObj.set({
       left: baseLeft,
-      top: baseTop
+      top: baseTop,
     });
   };
 
@@ -963,10 +1009,10 @@ const Data = () => {
       }
     };
 
-    canvas.on('object:moving', handleObjectMoving);
+    canvas.on("object:moving", handleObjectMoving);
 
     return () => {
-      canvas.off('object:moving', handleObjectMoving);
+      canvas.off("object:moving", handleObjectMoving);
     };
   }, [canvas, activeImage]);
 
@@ -975,7 +1021,7 @@ const Data = () => {
 
     const handleMaskScaling = (e) => {
       const obj = e.target;
-      if (obj && obj.type === 'image' && obj !== activeImage) {
+      if (obj && obj.type === "image" && obj !== activeImage) {
         // Ensure minimum size
         const minScale = 0.1;
         obj.scaleX = Math.max(obj.scaleX, minScale);
@@ -985,7 +1031,7 @@ const Data = () => {
 
     const handleMaskMoving = (e) => {
       const obj = e.target;
-      if (obj && obj.type === 'image' && obj !== activeImage) {
+      if (obj && obj.type === "image" && obj !== activeImage) {
         // Keep mask within canvas bounds
         const bound = obj.getBoundingRect();
         if (bound.left < 0) {
@@ -1003,14 +1049,14 @@ const Data = () => {
       }
     };
 
-    canvas.on('object:scaling', handleMaskScaling);
-    canvas.on('object:moving', handleMaskMoving);
-    canvas.on('object:modified', saveCanvasState);
+    canvas.on("object:scaling", handleMaskScaling);
+    canvas.on("object:moving", handleMaskMoving);
+    canvas.on("object:modified", saveCanvasState);
 
     return () => {
-      canvas.off('object:scaling', handleMaskScaling);
-      canvas.off('object:moving', handleMaskMoving);
-      canvas.off('object:modified', saveCanvasState);
+      canvas.off("object:scaling", handleMaskScaling);
+      canvas.off("object:moving", handleMaskMoving);
+      canvas.off("object:modified", saveCanvasState);
     };
   }, [canvas, activeImage, saveCanvasState]);
 
@@ -1125,14 +1171,12 @@ const Data = () => {
               setContrast={setContrast}
               saturation={saturation}
               setSaturation={setSaturation}
-            />
-          }
-          {expandedPanel === 'masking' && (
-            <MaskingPanel
-              canvas={canvas}
               activeImage={activeImage}
             />
-          )}
+          }
+          {/* {expandedPanel === "masking" && (
+            <MaskingPanel canvas={canvas} activeImage={activeImage} />
+          )} */}
         </div>
       </div>
     </div>

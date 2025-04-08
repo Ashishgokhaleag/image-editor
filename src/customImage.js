@@ -27,7 +27,6 @@ const ImageEditor = () => {
     hd: { width: 1920, height: 1080 },
   };
 
-  console.log(savedImage, "savedImage");
   useEffect(() => {
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
       width: 600,

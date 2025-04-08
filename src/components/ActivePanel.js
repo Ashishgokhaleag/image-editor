@@ -11,27 +11,6 @@ import { Crop, FlipHorizontal, RotateCcw } from "lucide-react";
 import { ImageMasking } from "./imageMaking";
 import "./editor.styles.css";
 
-const styles = {
-  filterImg: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "8px",
-    overflow: "hidden",
-    backgroundColor: "#333",
-    marginBottom: "4px",
-    position: "relative",
-  },
-  frameImg: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "8px",
-    overflow: "hidden",
-    backgroundColor: "#333",
-    marginBottom: "4px",
-    position: "relative",
-  },
-};
-
 const ActivePanel = ({
   expandedPanel,
   canvas,
@@ -98,6 +77,7 @@ const ActivePanel = ({
     },
   ];
 
+  // CSS filter styles for previews
   const getFilterStyle = (filterId) => {
     switch (filterId) {
       case "chrome":
@@ -118,19 +98,20 @@ const ActivePanel = ({
         return "contrast(150%) saturate(80%)";
       case "wash":
         return "contrast(80%) brightness(120%)";
+      case "vintage":
+        return "sepia(50%) contrast(120%) brightness(105%)";
+      case "sepia":
+        return "sepia(100%)";
+      case "invert":
+        return "invert(100%)";
+      case "brightnessBoost":
+        return "brightness(130%)";
+      case "contrastBoost":
+        return "contrast(140%)";
       default:
         return "none";
     }
   };
-
-  const imageUrl =
-    canvas && canvas.getObjects().find((obj) => obj.type === "image")
-      ? canvas.toDataURL({
-          format: "png",
-          quality: 0.5,
-          multiplier: 0.2,
-        })
-      : "";
 
   switch (expandedPanel) {
     case "filter":
@@ -145,18 +126,23 @@ const ActivePanel = ({
                 }`}
                 onClick={() => applyFilter(filter.id)}
               >
-                <div className="filter-img relative" style={styles.filterImg}>
-                  {imageUrl && (
-                    <div
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url(${imageUrl})`,
-                        filter: getFilterStyle(filter.id),
-                        width: "100%",
-                        height: "100%",
-                      }}
-                    />
-                  )}
+                <div
+                  className="filter-img relative overflow-hidden"
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    borderRadius: "8px",
+                    backgroundColor: "#333",
+                    marginBottom: "4px",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    className="w-full h-full bg-white"
+                    style={{
+                      filter: getFilterStyle(filter.id),
+                    }}
+                  ></div>
                 </div>
                 <span className="text-xs text-white/80">{filter.name}</span>
               </button>
@@ -164,7 +150,6 @@ const ActivePanel = ({
           </div>
         </div>
       );
-
     case "adjust":
       return (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">

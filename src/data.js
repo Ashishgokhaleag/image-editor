@@ -17,6 +17,12 @@ const Data = () => {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
+  const [resolution, setResolution] = useState("standard"); // 'standard' or 'hd'
+  const resolutions = {
+    standard: { width: 1280, height: 720 },
+    hd: { width: 1920, height: 1080 },
+  };
+
   // Filter panel state
   const [activeFilter, setActiveFilter] = useState("default");
   const [brightness, setBrightness] = useState(0);
@@ -37,51 +43,40 @@ const Data = () => {
 
   const [imageFile, setImageFile] = useState(null);
   const [imageObj, setImageObj] = useState(null);
+  const [originalImageData, setOriginalImageData] = useState(null); // Store original image data
 
   const [isShapeFilled, setIsShapeFilled] = useState(true);
   const [shapeFill, setShapeFill] = useState("#000000");
   const [activeFrame, setActiveFrame] = useState("None");
-  const [resolution, setResolution] = useState("standard"); // 'standard' or 'hd'
-  const resolutions = {
-    standard: { width: 1280, height: 720 },
-    hd: { width: 1920, height: 1080 },
-  };
-
   // Add new state for masking
   const [maskingMode, setMaskingMode] = useState(false);
 
-  // Initialize canvas
+  // Initialize canvas only once when component mounts
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (canvasRef.current) {
+      const { width, height } = resolutions[resolution];
+      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+        width,
+        height,
+        backgroundColor: "#333",
+      });
+      setCanvas(fabricCanvas);
 
-    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-      width: resolutions[resolution].width,
-      height: resolutions[resolution].height,
-      backgroundColor: "#f0f0f0",
-      preserveObjectStacking: true,
-      selection: true,
-    });
+      return () => {
+        fabricCanvas.dispose();
+      };
+    }
+  }, []); // Only run once on mount
 
-    fabricCanvas.defaultCursor = "default";
-    setCanvas(fabricCanvas);
-
-    const handleResize = () => {
-      const width = resolutions[resolution].width;
-      const height = resolutions[resolution].height;
-
-      fabricCanvas.setWidth(width);
-      fabricCanvas.setHeight(height);
-      fabricCanvas.calcOffset();
-      fabricCanvas.renderAll();
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      fabricCanvas.dispose();
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [resolution]);
+  // Update canvas dimensions when resolution changes
+  useEffect(() => {
+    if (canvas) {
+      const { width, height } = resolutions[resolution];
+      canvas.setWidth(width);
+      canvas.setHeight(height);
+     canvas.renderAll();
+    }
+  }, [resolution, canvas]);
 
   useEffect(() => {
     if (expandedPanel === "annotate") {
@@ -164,13 +159,45 @@ const Data = () => {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      fabric.Image.fromURL(e.target.result, (img) => {
-        canvas.clear();
-        setImageObj(img);
-        scaleImage(img);
-        setLoading(false);
-        saveCanvasState();
-      });
+      // Store the original image data for resolution changes
+      setOriginalImageData(e.target.result);
+
+      fabric.Image.fromURL(
+        e.target.result,
+        (img) => {
+          // Clear the canvas of any existing content
+          canvas.clear();
+
+          // Store the original image object for later use
+          setImageObj(img);
+
+          // Set canvas dimensions based on selected resolution
+          const { width, height } = resolutions[resolution];
+
+          // Scale and position the image on the canvas
+          const scaleFactor = Math.min(width / img.width, height / img.height);
+          img.scale(scaleFactor);
+
+          // Center the image
+          img.set({
+            left: (width - img.width * scaleFactor) / 2,
+            top: (height - img.height * scaleFactor) / 2,
+            selectable: false,
+          });
+
+          canvas.add(img);
+          canvas.sendToBack(img);
+
+          // Update UI state
+          setLoading(false);
+          setActiveFilter("default");
+          setActiveFrame("None");
+
+          // Save the initial state to history
+          saveCanvasState();
+        },
+        { crossOrigin: "anonymous" }
+      );
     };
     reader.readAsDataURL(file);
   };
@@ -511,57 +538,6 @@ const Data = () => {
     handleZoom(newZoom);
   };
 
-  const scaleImage = (img) => {
-    const { width, height } = resolutions[resolution];
-
-    const scaleFactor = Math.min(width / img.width, height / img.height);
-    img.scale(scaleFactor);
-    img.set({
-      left: (width - img.getScaledWidth()) / 2,
-      top: (height - img.getScaledHeight()) / 2,
-    });
-
-    // Ensure the image is sent to the back and rendered
-    canvas.add(img);
-    canvas.sendToBack(img);
-    canvas.renderAll();
-  };
-
-  const changeResolution = (res) => {
-    if (!canvas) return;
-
-    const { width, height } = resolutions[res];
-    canvas.setWidth(width);
-    canvas.setHeight(height);
-
-    if (imageObj) {
-      // Create a clone of the image object to ensure it's properly redrawn
-      const imgClone = fabric.util.object.clone(imageObj);
-      canvas.clear();
-
-      // Adjust the image scaling to fit the new resolution
-      const scaleFactor = Math.min(
-        width / imgClone.width,
-        height / imgClone.height
-      );
-      imgClone.scale(scaleFactor);
-      imgClone.set({
-        left: (width - imgClone.getScaledWidth()) / 2,
-        top: (height - imgClone.getScaledHeight()) / 2,
-      });
-
-      canvas.add(imgClone);
-      canvas.sendToBack(imgClone);
-      setImageObj(imgClone);
-      canvas.renderAll();
-      saveCanvasState();
-    }
-
-    console.log("res>>>", res);
-
-    setResolution(res);
-  };
-
   // Handle save image
   const handleSaveImage = () => {
     if (!canvas) return;
@@ -590,8 +566,17 @@ const Data = () => {
     setContrast(0);
     setSaturation(0);
 
-    // Color filters
+    // Remove existing filters
+    activeImage.filters = [];
+
+    // Apply the selected filter
     switch (filterId) {
+      case "default":
+        activeImage.filters.push(
+          new fabric.Image.filters.Saturation({ saturation: 0.1 }),
+          new fabric.Image.filters.Contrast({ contrast: 0.1 })
+        );
+        break;
       case "chrome":
         activeImage.filters.push(
           new fabric.Image.filters.Contrast({ contrast: 0.1 }),
@@ -601,7 +586,8 @@ const Data = () => {
       case "fade":
         activeImage.filters.push(
           new fabric.Image.filters.Contrast({ contrast: -0.15 }),
-          new fabric.Image.filters.Saturation({ saturation: -0.2 })
+          new fabric.Image.filters.Saturation({ saturation: -0.2 }),
+          new fabric.Image.filters.Brightness({ brightness: 0.05 })
         );
         break;
       case "cold":
@@ -646,8 +632,8 @@ const Data = () => {
       case "vintage":
         activeImage.filters.push(
           new fabric.Image.filters.Saturation({ saturation: -0.5 }),
-          new fabric.Image.filters.Contrast({ contrast: 0.2 }),
-          new fabric.Image.filters.Brightness({ brightness: 0.1 })
+          new fabric.Image.filters.Sepia(),
+          new fabric.Image.filters.Brightness({ brightness: 0.05 })
         );
         break;
       case "sepia":
@@ -667,14 +653,11 @@ const Data = () => {
         );
         break;
       default:
-        return null;
+        // No filter for default
+        break;
     }
 
     activeImage.applyFilters();
-    // Remove existing filters
-    activeImage.filters = [];
-
-    // Apply the selected filter
     canvas.renderAll();
     saveCanvasState();
   };
@@ -733,6 +716,9 @@ const Data = () => {
     );
 
     const croppedDataUrl = croppedCanvas.toDataURL(); // Convert to base64 image
+
+    // Save the cropped image as the new original image data
+    setOriginalImageData(croppedDataUrl);
 
     fabric.Image.fromURL(croppedDataUrl, (croppedImg) => {
       croppedImg.set({
@@ -998,6 +984,59 @@ const Data = () => {
     });
   };
 
+  const changeResolution = (res) => {
+    if (!canvas) return;
+
+    setResolution(res);
+
+    // If we have an image loaded, we need to reload and rescale it
+    if (originalImageData && canvas) {
+      setLoading(true);
+
+      fabric.Image.fromURL(
+        originalImageData,
+        (img) => {
+          // Clear the canvas
+          canvas.clear();
+
+          // Store the image object
+          setImageObj(img);
+
+          // Get new dimensions
+          const { width, height } = resolutions[res];
+
+          // Scale image to fit the new canvas size
+          const scaleFactor = Math.min(width / img.width, height / img.height);
+          img.scale(scaleFactor);
+
+          // Center the image
+          img.set({
+            left: (width - img.width * scaleFactor) / 2,
+            top: (height - img.height * scaleFactor) / 2,
+            selectable: false,
+          });
+
+          // Add the image to canvas
+          canvas.add(img);
+          canvas.sendToBack(img);
+
+          // Set the active image
+          setActiveImage(img);
+          setLoading(false);
+
+          // Restore any filters or adjustments
+          if (activeFilter !== "default") {
+            applyFilter(activeFilter);
+          }
+
+          // Save the new state
+          saveCanvasState();
+        },
+        { crossOrigin: "anonymous" }
+      );
+    }
+  };
+
   // Add to your useEffect for canvas events
   useEffect(() => {
     if (!canvas) return;
@@ -1070,6 +1109,7 @@ const Data = () => {
     }
   }, [maskingMode, setupMaskingInteractions]);
 
+
   return (
     <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col">
       <div className="px-4 py-3 flex justify-between items-center border-b border-white/10">
@@ -1085,9 +1125,9 @@ const Data = () => {
           <div className="flex items-center justify-center space-x-4">
             <select
               id="resolution"
+              className="block w-48 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-white text-gray-700 text-sm"
               value={resolution}
               onChange={(e) => changeResolution(e.target.value)}
-              className="block w-48 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-white text-gray-700 text-sm"
             >
               <option value="standard">Standard (1280x720)</option>
               <option value="hd">HD (1920x1080)</option>
@@ -1172,6 +1212,7 @@ const Data = () => {
               saturation={saturation}
               setSaturation={setSaturation}
               activeImage={activeImage}
+              originalImageData={originalImageData}
             />
           }
           {/* {expandedPanel === "masking" && (

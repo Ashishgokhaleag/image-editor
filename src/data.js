@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { fabric } from "fabric";
 import { lineWidths } from "./constant";
-import EditorToolbar from "./components/EditorToolbar";
-import Sidebar from "./components/Sidebar";
-import ActivePanel from "./components/ActivePanel";
+import EditorToolbar from "./components/imageEditor/EditorToolbar";
+import Sidebar from "./components/imageEditor/Sidebar";
+import ActivePanel from "./components/imageEditor/ActivePanel";
+import { CircleX, Cross } from "lucide-react";
+import MaskingPanel from "./components/imageEditor/MaskingPanel";
 
 const Data = () => {
   // Main canvas state
@@ -16,6 +18,7 @@ const Data = () => {
   const [expandedPanel, setExpandedPanel] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [openMasking, setOpenMasking] = useState(false);
 
   const [resolution, setResolution] = useState("standard"); // 'standard' or 'hd'
   const resolutions = {
@@ -74,7 +77,7 @@ const Data = () => {
       const { width, height } = resolutions[resolution];
       canvas.setWidth(width);
       canvas.setHeight(height);
-     canvas.renderAll();
+      canvas.renderAll();
     }
   }, [resolution, canvas]);
 
@@ -1109,9 +1112,8 @@ const Data = () => {
     }
   }, [maskingMode, setupMaskingInteractions]);
 
-
   return (
-    <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col">
+    <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col relative">
       <div className="px-4 py-3 flex justify-between items-center border-b border-white/10">
         <h1 className="text-white font-medium text-xl">Flux Editor</h1>
         <input
@@ -1213,11 +1215,34 @@ const Data = () => {
               setSaturation={setSaturation}
               activeImage={activeImage}
               originalImageData={originalImageData}
+              openMasking={openMasking}
+              setOpenMasking={setOpenMasking}
             />
           }
-          {/* {expandedPanel === "masking" && (
-            <MaskingPanel canvas={canvas} activeImage={activeImage} />
-          )} */}
+          {openMasking && (
+            <div className="bg-editor-dark h-full right-0 absolute top-0 animate-slide-in-right">
+              <div className="relative ">
+                <div className="p-4 flex justify-between items-center mt-10">
+                  <div>
+                    <p className="text-xl text-white font-bold ">Mask Image</p>
+                  </div>
+                  <div>
+                    <CircleX
+                      size={25}
+                      color="white"
+                      className="cursor-pointer "
+                      onClick={() => setOpenMasking(false)}
+                    />
+                  </div>
+                </div>
+                <div className="mt-10">
+                  {expandedPanel === "masking" && (
+                    <MaskingPanel canvas={canvas} activeImage={activeImage} />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

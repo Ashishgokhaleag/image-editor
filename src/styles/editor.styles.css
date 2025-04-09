@@ -1,0 +1,42 @@
+.filter-btn.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  
+  .filter-img img,
+  .frame-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .filter-btn,
+  .frame-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .filter-btn:hover,
+  .frame-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+  }
+  
+  .annotation-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .annotation-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  

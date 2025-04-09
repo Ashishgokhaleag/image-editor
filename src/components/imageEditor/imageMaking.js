@@ -1,27 +1,19 @@
-import { useState } from "react";
-import MaskingPanel from "./MaskingPanel";
+import React, { useState } from "react";
 import { CopyPlus, CopyX, ImagePlus } from "lucide-react";
 
 export const ImageMasking = ({
-  activeImage,
-  canvas,
   applyMask,
   clearMasking,
+  openMasking,
+  setOpenMasking,
 }) => {
-  const [isMaskingPanelVisible, setMaskingPanelVisible] = useState(false); // Move this outside of switch case
-
   // Function to handle the click event for "Load Mask Image" button
   const handleLoadMaskImageClick = () => {
-    setMaskingPanelVisible(!isMaskingPanelVisible); // Show the MaskingPanel
+    setOpenMasking(!openMasking);
   };
-
-  // Add other code here...
 
   return (
     <div className="absolute bottom-0 left-0 right-0 p-4 bg-editor-darker animate-slide-up">
-      {isMaskingPanelVisible && (
-        <MaskingPanel activeImage={activeImage} canvas={canvas} />
-      )}
       <div className="flex justify-center items-center gap-4">
         <div className="flex justify-center items-center gap-4">
           <button

@@ -1,6 +1,6 @@
 import React from "react";
 import { Redo, RotateCcw } from "lucide-react";
-import { tools } from "../constant";
+import { tools } from "../../constant";
 
 const Sidebar = ({ undo, redo, activeTool, handleToolSelect }) => {
   return (

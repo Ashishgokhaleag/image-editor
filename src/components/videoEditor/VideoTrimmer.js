@@ -5,7 +5,7 @@ const VideoTrimmer = ({ video, onTrimmed }) => {
   const [duration, setDuration] = useState(10);
 
   const handleTrim = () => {
-    const worker = new Worker(new URL('../ffmpegWorker.js', import.meta.url));
+    const worker = new Worker(new URL('../../screens/ffmpegWorker', import.meta.url));
 
     worker.postMessage({ command: "trim", video, start, duration });
 

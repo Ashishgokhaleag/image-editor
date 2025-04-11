@@ -5,6 +5,7 @@ import TestEditor from "./testData";
 import { Route, Routes } from "react-router-dom";
 import VideoEditorScreen from "./screens/VideoEditorScreen";
 import VideoScreen from "./screens/videoScreen";
+import Druid from "./druid";
 function App() {
   return (
     <div className="App">
@@ -15,6 +16,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Data />} />
         <Route path="/video" element={<VideoEditorScreen />} />
+        <Route path="/druid" element={<Druid />} />
         <Route path="/VideoScreen" element={<VideoScreen />} />
       </Routes>
     </div>

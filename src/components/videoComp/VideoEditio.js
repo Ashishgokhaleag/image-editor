@@ -18,12 +18,10 @@ import EmojiSelector from "./EmojiSelector";
 import DrawingTools from "./DrawingTools";
 import { Button } from "../ui/Buttons";
 import AdjustmentSlider from "./AdjustmentSlider";
+import UploadCard from "./UploadCard";
+import Editor from "./components/Editor";
 
-const VideoScreen = ({ isDarkMode }) => {
-  const [media, setMedia] = useState({
-    type: "image",
-    src: "",
-  });
+const VideoScreen = ({ isDarkMode, handleUpload, media, handleReset }) => {
   const [mode, setMode] = useState(null);
   const [zoom, setZoom] = useState(100);
   const [filter, setFilter] = useState("default");
@@ -67,7 +65,7 @@ const VideoScreen = ({ isDarkMode }) => {
 
     // Create a URL for the file
     const url = URL.createObjectURL(file);
-    setMedia({ type: fileType, src: url });
+    // setMedia({ type: fileType, src: url });
     setMode(null);
   };
 
@@ -346,26 +344,19 @@ const VideoScreen = ({ isDarkMode }) => {
           </div>
         )}
 
-        {mode === "upload" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <div
-              className={`p-6 rounded-lg ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              } flex flex-col items-center`}
-            >
-              <h3 className="text-lg font-medium mb-4">Upload Media</h3>
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => triggerFileUpload("video")}
-                  className="flex flex-col items-center p-4 border-2 border-dashed border-gray-400 rounded-lg hover:bg-gray-700/20"
-                >
-                  <Play size={40} />
-                  <span className="mt-2">Upload Video</span>
-                </button>
-              </div>
+        {mode === "upload" && {
+          ...(media.url ? (
+            <Editor
+              mediaUrl={media.url}
+              mediaName={media.file?.name || "Untitled"}
+              onBack={handleReset}
+            />
+          ) : (
+            <div className="w-full max-w-xl mx-auto">
+              <UploadCard onUpload={handleUpload} />
             </div>
-          </div>
-        )}
+          )),
+        }}
       </div>
 
       {mode === "filter" && (

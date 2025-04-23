@@ -6,6 +6,8 @@ import { Route, Routes } from "react-router-dom";
 import VideoEditorScreen from "./screens/VideoEditorScreen";
 import VideoScreen from "./screens/videoScreen";
 import Druid from "./druid";
+import SupersetIframe from "./SupersetIframe";
+import ChartExplorer from "./PivotTableDemo/ChartViewer";
 function App() {
   return (
     <div className="App">
@@ -18,6 +20,8 @@ function App() {
         <Route path="/video" element={<VideoEditorScreen />} />
         <Route path="/druid" element={<Druid />} />
         <Route path="/VideoScreen" element={<VideoScreen />} />
+        <Route path="/iframe" element={<SupersetIframe />} />
+        <Route path="/pivot" element={<ChartExplorer />} />
       </Routes>
     </div>
   );

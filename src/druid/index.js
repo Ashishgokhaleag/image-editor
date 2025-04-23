@@ -1,48 +1,4 @@
-// import React, { useEffect, useState } from 'react';
-// import { getAllData } from './api/druid';
-
-// function Druid() {
-//   const [rows, setRows] = useState([]);
-//   const datasource = 'wikipedia'; // change to your datasource name
-
-//   useEffect(() => {
-//     async function fetchData() {
-//       try {
-//         const data = await getAllData(datasource);
-//         setRows(data);
-//       } catch (err) {
-//         console.error('Error fetching data from Druid:', err);
-//       }
-//     }
-
-//     fetchData();
-//   }, []);
-
-//   return (
-//     <div className="App">
-//       <h1>Druid CRUD App</h1>
-//       <table border="1">
-//         <thead>
-//           <tr>
-//             {rows[0] && Object.keys(rows[0]).map((key) => <th key={key}>{key}</th>)}
-//           </tr>
-//         </thead>
-//         <tbody>
-//           {rows.map((row, idx) => (
-//             <tr key={idx}>
-//               {Object.values(row).map((val, j) => (
-//                 <td key={j}>{val?.toString()}</td>
-//               ))}
-//             </tr>
-//           ))}
-//         </tbody>
-//       </table>
-//     </div>
-//   );
-// }
-
-// export default Druid;
-
+// "proxy": "http://localhost:8888",
 import React, { useEffect, useState } from 'react';
 import { fetchWikipediaData } from './api/druid';
 import './style.css';

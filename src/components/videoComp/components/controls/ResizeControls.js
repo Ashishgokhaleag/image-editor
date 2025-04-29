@@ -207,7 +207,7 @@ const ResizeControls = ({
             className="text-gray-400 hover:text-white"
             onClick={() => applyPresetSize(1280, 720)}
           >
-            HD (1280x720)
+            HD(1280x720)
           </Button>
 
           <Button
@@ -216,7 +216,7 @@ const ResizeControls = ({
             className="text-gray-400 hover:text-white"
             onClick={() => applyPresetSize(1920, 1080)}
           >
-            Full HD (1920x1080)
+            Full HD(1920x1080)
           </Button>
 
           <Button
@@ -225,7 +225,7 @@ const ResizeControls = ({
             className="text-gray-400 hover:text-white"
             onClick={() => applyPresetSize(1080, 1080)}
           >
-            Instagram (1080x1080)
+            Instagram(1080x1080)
           </Button>
 
           <Button
@@ -239,16 +239,6 @@ const ResizeControls = ({
           </Button>
         </div>
       </div>
-
-      {/* Optional: remove Apply Resize button */}
-      {/* 
-      <div className="pt-4 border-t border-gray-800">
-        <Button className="w-full" onClick={onApplyResize}>
-          <Maximize className="h-4 w-4 mr-1" />
-          Apply Resize
-        </Button>
-      </div>
-      */}
     </div>
   );
 };

@@ -253,9 +253,8 @@ const Data = () => {
           width: canvas.width / 2,
           height: canvas.height / 2,
           fill: "rgba(255,255,255,0.2)",
-          stroke: "rgba(255,255,255,0.8)",
-          strokeWidth: 1,
-          strokeDashArray: [5, 5],
+          stroke: "transparent",
+          strokeWidth: 0,
           cornerColor: "white",
           cornerSize: 10,
           transparentCorners: false,
@@ -725,15 +724,17 @@ const Data = () => {
 
     fabric.Image.fromURL(croppedDataUrl, (croppedImg) => {
       croppedImg.set({
-        left: 50,
-        top: 50,
+        left: 0, // Align to top-left corner
+        top: 0, // Align to top-left corner
         selectable: false,
         hasBorders: false,
         hasControls: false,
+        opacity: 1, // Ensure full opacity
       });
 
-      croppedImg.scaleToWidth(canvas.width * 1);
-      croppedImg.scaleToHeight(canvas.height * 1);
+      // Ensure the image fits the canvas exactly
+      croppedImg.scaleToWidth(canvas.width);
+      croppedImg.scaleToHeight(canvas.height);
 
       canvas.clear();
       canvas.add(croppedImg);
@@ -1250,3 +1251,4 @@ const Data = () => {
 };
 
 export default Data;
+

@@ -38,6 +38,7 @@ const CropControls = ({
     };
     setLocalCropOptions(newOptions);
     onCropChange(newOptions);
+    onApplyCrop()
   };
 
   const handleRotate = (direction) => {
@@ -53,6 +54,7 @@ const CropControls = ({
     
     setLocalCropOptions(newOptions);
     onCropChange(newOptions);
+    onApplyCrop()
   };
 
   const handleFlip = (axis) => {
@@ -68,6 +70,7 @@ const CropControls = ({
     
     setLocalCropOptions(newOptions);
     onCropChange(newOptions);
+    onApplyCrop();
   };
 
   return (
@@ -144,16 +147,6 @@ const CropControls = ({
             Flip V
           </Button>
         </div>
-      </div>
-      
-      <div className="pt-4 border-t border-gray-800">
-        <Button 
-          className="w-full"
-          onClick={onApplyCrop}
-        >
-          <CropIcon className="h-4 w-4 mr-1" />
-          Apply Crop
-        </Button>
       </div>
     </div>
   );

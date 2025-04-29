@@ -1,9 +1,7 @@
 
-import { useState, RefObject, useEffect } from "react";
-import { Button } from "../../../ui/Buttons";
+import { useState, useEffect } from "react";
 import { Slider } from "../../../ui/slider";
-import { Filter as FilterIcon } from "lucide-react";
-import { FilterOptions, getFilterStyle } from "../../../../lib/editorUtils";
+import { getFilterStyle } from "../../../../lib/editorUtils";
 
 const FilterControls = ({ 
   mediaRef, 
@@ -125,18 +123,7 @@ const FilterControls = ({
             </span>
           </button>
         ))}
-      </div>
-      
-      <div className="pt-4 border-t border-gray-800">
-        <Button 
-          className="w-full"
-          onClick={onApplyFilter}
-          disabled={!localFilterOptions.name || localFilterOptions.name === "default"}
-        >
-          <FilterIcon className="h-4 w-4 mr-1" />
-          Apply Filter
-        </Button>
-      </div>
+      </div>        
     </div>
   );
 };

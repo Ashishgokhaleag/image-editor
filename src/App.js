@@ -8,13 +8,16 @@ import VideoScreen from "./screens/videoScreen";
 import Druid from "./druid";
 import SupersetIframe from "./SupersetIframe";
 import ChartExplorer from "./PivotTableDemo/ChartViewer";
+import Trim from "./trim";
+import Navbar from "./Navbar";
+
 function App() {
   return (
     <div className="App">
       {/* <FabricCanvas/> */}
       {/* <Data /> */}
       {/* <TestEditor/> */}
-
+      <Navbar />
       <Routes>
         <Route path="/" element={<Data />} />
         <Route path="/video" element={<VideoEditorScreen />} />
@@ -22,6 +25,7 @@ function App() {
         <Route path="/VideoScreen" element={<VideoScreen />} />
         <Route path="/iframe" element={<SupersetIframe />} />
         <Route path="/pivot" element={<ChartExplorer />} />
+        <Route path="/trim" element={<Trim />} />
       </Routes>
     </div>
   );

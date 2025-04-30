@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import axios from "axios";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
 
-const supersetUrl = "http://localhost:8088";
-const dashboardId = "2d60b0ef-9ed3-4ee3-aedd-9b172190ef01";
+const supersetUrl = "https://superset.dev.platform.ext.mobilityware.com";
+// const supersetUrl = "http://localhost:8088";
+const dashboardId = "c7c4f577-1416-48fd-88ff-a6a8e627220d";
 
 const supersetApi = axios.create({
   baseURL: supersetUrl,
@@ -22,6 +23,7 @@ const getCSRFToken = async () => {
   const res = await supersetApi.get("/api/v1/security/csrf_token/", {
     withCredentials: true,
   });
+  console.log(res.data.result);
   return res.data.result;
 };
 
@@ -31,10 +33,10 @@ const getTokenAndEmbedDashboard = async () => {
     const loginResponse = await axios.post(
       `${supersetUrl}/api/v1/security/login`,
       {
-        password: "Password123",
+        password: "admin",
         provider: "db",
         refresh: true,
-        username: "Abhijeet",
+        username: "admin",
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -45,6 +47,7 @@ const getTokenAndEmbedDashboard = async () => {
     localStorage.setItem("access_token", access_token);
 
     const csrf = await getCSRFToken();
+    console.log(csrf);
     localStorage.setItem("csrf_token", csrf);
 
     // POST guest_token

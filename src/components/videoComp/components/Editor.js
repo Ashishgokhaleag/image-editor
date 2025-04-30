@@ -62,6 +62,7 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
       setActiveTool(null)
     } else {
       setActiveTool(tool)
+      // Don't clear annotations when switching tools
     }
   }
 

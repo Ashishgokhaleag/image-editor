@@ -3,7 +3,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../ui/tabs"
 import { Slider } from "../../../ui/slider"
 import { Button } from "../../../ui/Buttons"
 import { Input } from "../../../ui/input"
-import { Pencil, Eraser, Type, Square, Circle, ArrowRight, Pipette, Bold, Italic, Underline, StrikethroughIcon } from 'lucide-react'
+import {
+  Pencil,
+  Eraser,
+  Type,
+  Square,
+  Circle,
+  ArrowRight,
+  Pipette,
+  Bold,
+  Italic,
+  Underline,
+  StrikethroughIcon,
+  X,
+} from "lucide-react"
 
 const annotationTools = [
   { id: "pencil", name: "Sharpie", icon: <Pencil className="h-4 w-4" /> },
@@ -32,6 +45,7 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
   const [activeTool, setActiveTool] = useState("pencil")
   const [color, setColor] = useState("#FFFFFF")
   const [outlineColor, setOutlineColor] = useState("#000000")
+  const [textColor, setTextColor] = useState("#FFFFFF")
   const [lineWidth, setLineWidth] = useState(2)
   const [fontSize, setFontSize] = useState(16)
   const [fontFamily, setFontFamily] = useState("sans-serif")
@@ -50,6 +64,18 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
   const textInputRef = useRef(null)
   const canvasContainerRef = useRef(null)
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 })
+  const textToolbarRef = useRef(null)
+  const [textBox, setTextBox] = useState({
+    visible: false,
+    x: 100,
+    y: 100,
+    text: "",
+    bold: false,
+    italic: false,
+    underline: false,
+  })
+  const [showTextToolbar, setShowTextToolbar] = useState(false)
+  const [textToolbarPosition, setTextToolbarPosition] = useState({ x: 0, y: 0 })
 
   const handleToolChange = (toolId) => {
     setActiveTool(toolId)
@@ -60,10 +86,8 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
       setIsDrawingMode(true) // Keep drawing mode active for other tools too
     }
 
-    // Update cursor style based on tool
     updateCursorStyle(toolId)
 
-    // Initialize canvas for the selected tool
     setupCanvas()
   }
 
@@ -134,12 +158,6 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
     const mediaElement = mediaRef.current
     const canvas = canvasRef.current
     const mediaRect = mediaElement.getBoundingClientRect()
-
-    // Set canvas dimensions to match the media element exactly
-    // canvas.width = mediaElement.offsetWidth
-    // canvas.height = mediaElement.offsetHeight
-
-    // Position the canvas container to perfectly overlay the media element
     canvasContainerRef.current.style.position = "absolute"
     canvasContainerRef.current.style.left = "6.5%"
     canvasContainerRef.current.style.top = "12.9%"
@@ -159,7 +177,6 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
   const setupCanvas = () => {
     if (!mediaRef.current || !canvasRef.current) return
 
-
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
 
@@ -167,16 +184,12 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
 
     const mediaElement = mediaRef.current
 
-    if(canvas.width==mediaElement.offsetHeight || canvas.height ==mediaElement.offsetHeight)
-    {
+    if (canvas.width == mediaElement.offsetHeight || canvas.height == mediaElement.offsetHeight) {
       console.log("no need to update")
-    }
-    else
-    {
+    } else {
       canvas.width = mediaElement.offsetWidth
       canvas.height = mediaElement.offsetHeight
     }
-    
 
     // Set up canvas styles based on the current tool
     ctx.strokeStyle = outlineColor
@@ -192,7 +205,6 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
 
     updateCursorStyle(activeTool)
     updateCanvasPosition()
-
   }
 
   const getCanvasContext = () => {
@@ -220,32 +232,6 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
       ctx.moveTo(x, y)
     }
   }
-
-  // const handleMouseMove = (e) => {
-  //   if (!isDrawing || !isDrawingMode || !canvasRef.current) return;
-
-  //   e.preventDefault(); // Prevent default behavior
-
-  //   const x = e.clientX - canvasOffset.x;
-  //   const y = e.clientY - canvasOffset.y;
-
-  //   const ctx = getCanvasContext();
-  //   if (!ctx) return;
-
-  //   if (activeTool === "pencil" || activeTool === "path") {
-  //     ctx.lineTo(x, y);
-  //     ctx.stroke();
-  //   } else if (activeTool === "eraser") {
-  //     // Eraser as a white brush with composition mode
-  //     ctx.globalCompositeOperation = 'destination-out';
-  //     ctx.beginPath();
-  //     ctx.arc(x, y, lineWidth * 2, 0, Math.PI * 2);
-  //     ctx.fill();
-  //     ctx.globalCompositeOperation = 'source-over';
-  //   }
-
-  //   setMousePosition({ x, y });
-  // };
 
   const handleMouseMove = (e) => {
     if (!isDrawing || !isDrawingMode || !canvasRef.current) return
@@ -313,9 +299,13 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
         textInputRef.current.style.left = `${x}px`
         textInputRef.current.style.top = `${y}px`
         textInputRef.current.style.display = "block"
+        textInputRef.current.style.border = "2px solid black"
+        textInputRef.current.style.borderRadius = "4px"
         textInputRef.current.innerHTML = "" // Clear any previous content
         textInputRef.current.setAttribute("data-placeholder", "Enter text here")
         textInputRef.current.focus()
+
+        textInputRef.current.style.color = textColor
 
         // Apply current text formatting to input
         textInputRef.current.style.fontFamily = fontFamily
@@ -324,6 +314,10 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
         textInputRef.current.style.fontStyle = textFormatting.italic ? "italic" : "normal"
         textInputRef.current.style.textAlign = textAlign
         updateTextDecoration()
+
+        // Show text toolbar
+        setTextToolbarPosition({ x, y: y - 40 }) // Position toolbar above the text
+        setShowTextToolbar(true)
       }
     }
 
@@ -351,60 +345,66 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
   }
 
   const applyTextFormatting = () => {
-    if (!textInputRef.current || !canvasRef.current) return
+    if (!textInputRef.current || !canvasRef.current) return;
 
-    const text = textInputRef.current.value
+    const text = textInputRef.current.innerText || textInputRef.current.textContent;
     if (!text) {
-      textInputRef.current.style.display = "none"
-      return
+      textInputRef.current.style.display = "none";
+      setShowTextToolbar(false);
+      return;
     }
 
-    const ctx = getCanvasContext()
-    if (!ctx) return
+    console.log("Text to draw:", text); // Debugging log
+
+    const ctx = getCanvasContext();
+    if (!ctx) return;
 
     // Apply text formatting
-    let fontString = fontSize + "px " + fontFamily
-    if (textFormatting.bold) fontString = "bold " + fontString
-    if (textFormatting.italic) fontString = "italic " + fontString
+    let fontString = fontSize + "px " + fontFamily;
+    if (textFormatting.bold) fontString = "bold " + fontString;
+    if (textFormatting.italic) fontString = "italic " + fontString;
 
-    ctx.font = fontString
-    ctx.textAlign = textAlign
-    ctx.fillStyle = color
+    ctx.font = fontString;
+    ctx.textAlign = textAlign;
+    ctx.fillStyle = textColor; // Use textColor instead of color
 
     // Get position from the input element position
-    const x = Number.parseInt(textInputRef.current.style.left || "0")
-    const y = Number.parseInt(textInputRef.current.style.top || "0") + fontSize // Adjust y to align with baseline
+    const x = Number.parseInt(textInputRef.current.style.left || "0");
+    const y = Number.parseInt(textInputRef.current.style.top || "0") + fontSize; // Adjust y to align with baseline
+
+    console.log("Drawing text at:", x, y); // Debugging log
 
     // Draw the text
-    ctx.fillText(text, x, y)
+    ctx.fillText(text, x, y);
 
     // Apply underline or strikethrough if enabled
     if (textFormatting.underline || textFormatting.strikethrough) {
-      const metrics = ctx.measureText(text)
-      const textWidth = metrics.width
+      const metrics = ctx.measureText(text);
+      const textWidth = metrics.width;
 
-      ctx.beginPath()
+      ctx.beginPath();
       if (textFormatting.underline) {
-        ctx.moveTo(x, y + 3)
-        ctx.lineTo(x + textWidth, y + 3)
+        ctx.moveTo(x, y + 3);
+        ctx.lineTo(x + textWidth, y + 3);
       }
 
       if (textFormatting.strikethrough) {
-        ctx.moveTo(x, y - fontSize / 2)
-        ctx.lineTo(x + textWidth, y - fontSize / 2)
+        ctx.moveTo(x, y - fontSize / 2);
+        ctx.lineTo(x + textWidth, y - fontSize / 2);
       }
 
-      ctx.strokeStyle = color
-      ctx.lineWidth = 1
-      ctx.stroke()
+      ctx.strokeStyle = textColor; // Use textColor instead of color
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
 
     // Hide and clear the text input
-    textInputRef.current.style.display = "none"
-    textInputRef.current.value = ""
+    textInputRef.current.style.display = "none";
+    textInputRef.current.innerHTML = "";
+    setShowTextToolbar(false);
 
     // Log the text annotation
-    logAnnotation(text)
+    logAnnotation(text);
   }
 
   const handleTextInputKeyDown = (e) => {
@@ -438,6 +438,42 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
   const handleApplyAnnotations = () => {
     if (onApplyAnnotations) {
       onApplyAnnotations()
+    }
+  }
+
+  // Formatting actions for contentEditable
+  const handleTextFormat = (command, e) => {
+    // Stop event propagation to prevent creating a new text box
+    e.stopPropagation()
+    e.preventDefault()
+
+    console.log("command>>>", command)
+
+    // Toggle formatting state
+    if (command === "bold") {
+      toggleTextFormatting("bold")
+    } else if (command === "italic") {
+      toggleTextFormatting("italic")
+    } else if (command === "underline") {
+      toggleTextFormatting("underline")
+    } else if (command === "strikethrough") {
+      toggleTextFormatting("strikethrough")
+    }
+
+    // Apply formatting to the text input
+    if (textInputRef.current) {
+      document.execCommand(command, false, null)
+      textInputRef.current.focus()
+    }
+  }
+
+  // Delete text box
+  const handleDeleteTextBox = (e) => {
+    if (e) e.stopPropagation()
+    if (textInputRef.current) {
+      textInputRef.current.style.display = "none"
+      textInputRef.current.innerHTML = ""
+      setShowTextToolbar(false)
     }
   }
 
@@ -519,6 +555,71 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
       }
     }
   }, [mediaRef, mediaType])
+
+  // Handle clicks outside the text input to apply formatting
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        textInputRef.current &&
+        textInputRef.current.style.display !== "none" &&
+        !textInputRef.current.contains(e.target) &&
+        textToolbarRef.current &&
+        !textToolbarRef.current.contains(e.target)
+      ) {
+        applyTextFormatting()
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [textFormatting])
+
+  const handleCanvasClick = (e) => {
+    // If text toolbar is already showing, don't create a new text box
+    if (showTextToolbar) {
+      // Check if we're clicking on a toolbar button
+      if (textToolbarRef.current && textToolbarRef.current.contains(e.target)) {
+        return
+      }
+    }
+
+    if (activeTool === "text") {
+      const x = e.clientX - canvasOffset.x
+      const y = e.clientY - canvasOffset.y
+
+      setTextBox({
+        ...textBox,
+        visible: true,
+        x: x,
+        y: y,
+        text: "",
+      })
+
+      // Show text input at clicked position
+      if (textInputRef.current) {
+        textInputRef.current.style.left = `${x}px`
+        textInputRef.current.style.top = `${y}px`
+        textInputRef.current.style.display = "block"
+        textInputRef.current.innerHTML = "" // Clear any previous content
+        textInputRef.current.setAttribute("data-placeholder", "Enter text here")
+        textInputRef.current.focus()
+
+        // Apply current text formatting to input
+        textInputRef.current.style.fontFamily = fontFamily
+        textInputRef.current.style.fontSize = `${fontSize}px`
+        textInputRef.current.style.fontWeight = textFormatting.bold ? "bold" : "normal"
+        textInputRef.current.style.fontStyle = textFormatting.italic ? "italic" : "normal"
+        textInputRef.current.style.textAlign = textAlign
+        updateTextDecoration()
+
+        // Show text toolbar
+        setTextToolbarPosition({ x, y: y - 40 }) // Position toolbar above the text
+        setShowTextToolbar(true)
+      }
+    }
+  }
 
   return (
     <div className="space-y-1">
@@ -663,46 +764,77 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
               <Button
                 variant={textFormatting.bold ? "secondary" : "outline"}
                 size="icon"
-                onClick={() => toggleTextFormatting("bold")}
-                className={`${textFormatting.bold ? "bg-editor-control text-white" : "text-gray-400 hover:text-white"}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTextFormat("bold", e);
+                }}
+                onMouseDown={(e) => e.preventDefault()} // Prevent default behavior
               >
                 <Bold className="h-4 w-4" />
               </Button>
-
               <Button
                 variant={textFormatting.italic ? "secondary" : "outline"}
                 size="icon"
-                onClick={() => toggleTextFormatting("italic")}
-                className={`${
-                  textFormatting.italic ? "bg-editor-control text-white" : "text-gray-400 hover:text-white"
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTextFormat("italic", e);
+                }}
+                onMouseDown={(e) => e.preventDefault()} // Prevent default behavior
               >
                 <Italic className="h-4 w-4" />
               </Button>
-
               <Button
                 variant={textFormatting.underline ? "secondary" : "outline"}
                 size="icon"
-                onClick={() => toggleTextFormatting("underline")}
-                className={`${
-                  textFormatting.underline ? "bg-editor-control text-white" : "text-gray-400 hover:text-white"
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTextFormat("underline", e);
+                }}
+                onMouseDown={(e) => e.preventDefault()} // Prevent default behavior
               >
                 <Underline className="h-4 w-4" />
               </Button>
-
               <Button
                 variant={textFormatting.strikethrough ? "secondary" : "outline"}
                 size="icon"
-                onClick={() => toggleTextFormatting("strikethrough")}
-                className={`${
-                  textFormatting.strikethrough ? "bg-editor-control text-white" : "text-gray-400 hover:text-white"
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTextFormat("strikethrough", e);
+                }}
+                onMouseDown={(e) => e.preventDefault()} // Prevent default behavior
               >
                 <StrikethroughIcon className="h-4 w-4" />
               </Button>
+
+             <Button
+              variant="outline"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteTextBox();
+              }}
+              onMouseDown={(e) => e.preventDefault()} // Prevent default behavior
+            >
+              <X className="h-4 w-4" />
+            </Button>
             </div>
           </div>
+
+          <div className="space-y-2">
+              <label className="text-xs text-gray-400">Text Color</label>
+              <div className="flex">
+                <Input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="w-10 h-10 p-1 rounded-l-md border-r-0"
+                />
+                <div className="flex-1 flex items-center justify-between bg-gray-800 rounded-r-md px-3">
+                  <span className="text-xs text-gray-300">{textColor.toUpperCase()}</span>
+                  <Pipette className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
         </TabsContent>
       </Tabs>
 
@@ -713,41 +845,48 @@ const AnnotateControls = ({ mediaRef, mediaType, onApplyAnnotations }) => {
       </div>
 
       {/* Container to properly position the canvas */}
-      <div ref={canvasContainerRef} className="absolute top-0 left-0 pointer-events-none overflow-hidden">
+      <div ref={canvasContainerRef} className="absolute top-0 left-0 overflow-hidden">
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onClick={handleCanvasClick}
           className="pointer-events-auto border overflow-hidden"
-          style={{ display: "block" }}
+          style={{ display: "block", pointerEvents: "auto" }}
         />
 
+        {/* Text input for editing text annotations */}
         <div
           ref={textInputRef}
           contentEditable
-          className="absolute border border-white text-white p-1 min-w-[100px] min-h-[40px] resize"
+          className="absolute p-1 border-0 outline-none bg-transparent text-white"
           style={{
             display: "none",
-            position: "absolute",
-            zIndex: 20,
-            fontFamily,
-            fontSize: `${fontSize}px`,
-            fontWeight: textFormatting.bold ? "bold" : "normal",
-            fontStyle: textFormatting.italic ? "italic" : "normal",
-            textAlign: textAlign,
-            textDecoration: textFormatting.underline
-              ? "underline"
-              : textFormatting.strikethrough
-                ? "line-through"
-                : "none",
-            resize: "both",
-            overflow: "auto",
+            minWidth: "100px",
+            minHeight: "24px",
+            whiteSpace: "pre-wrap",
+            zIndex: 10,
+            caretColor: "white",
+            lineHeight: "1.2",
           }}
           onKeyDown={handleTextInputKeyDown}
-          onBlur={applyTextFormatting}
-          placeholder="Enter text here"
+          onClick={(e) => e.stopPropagation()} // Prevent clicks from propagating to canvas
         ></div>
+
+        {/* Text formatting toolbar */}
+        {showTextToolbar && (
+          <div
+            ref={textToolbarRef}
+            className="absolute bg-gray-800 rounded-md shadow-lg p-1 flex items-center gap-1 z-20"
+            style={{
+              left: `${textToolbarPosition.x}px`,
+              top: `${textToolbarPosition.y}px`,
+            }}
+            onClick={(e) => e.stopPropagation()} // Stop propagation on the entire toolbar
+          >
+          </div>
+        )}
       </div>
     </div>
   )

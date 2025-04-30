@@ -25,30 +25,29 @@ const MediaPreview = ({
 
   useEffect(() => {
     const updateCanvasSize = () => {
-      if (!mediaRef.current || !canvasRef.current) return;
-  
-      const mediaElement = mediaRef.current;
-      const canvas = canvasRef.current;
-  
-      const rect = mediaElement.getBoundingClientRect();
-  
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-  
-      canvas.style.position = "absolute";
-      canvas.style.left = `${mediaElement.offsetLeft}px`;
-      canvas.style.top = `${mediaElement.offsetTop}px`;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-  
-      setContainerRect(rect); // store actual media rect
-    };
-  
-    updateCanvasSize();
-    window.addEventListener("resize", updateCanvasSize);
-    return () => window.removeEventListener("resize", updateCanvasSize);
-  }, [mediaRef, canvasRef]);
-  
+      if (!mediaRef.current || !canvasRef.current) return
+
+      const mediaElement = mediaRef.current
+      const canvas = canvasRef.current
+
+      const rect = mediaElement.getBoundingClientRect()
+
+      canvas.width = rect.width
+      canvas.height = rect.height
+
+      canvas.style.position = "absolute"
+      canvas.style.left = `${mediaElement.offsetLeft}px`
+      canvas.style.top = `${mediaElement.offsetTop}px`
+      canvas.style.width = `${rect.width}px`
+      canvas.style.height = `${rect.height}px`
+
+      setContainerRect(rect) // store actual media rect
+    }
+
+    updateCanvasSize()
+    window.addEventListener("resize", updateCanvasSize)
+    return () => window.removeEventListener("resize", updateCanvasSize)
+  }, [mediaRef, canvasRef])
 
   // Handle keyboard events
   useEffect(() => {
@@ -157,94 +156,199 @@ const MediaPreview = ({
   const renderTextAnnotations = () => {
     return annotations
       .filter((a) => a.type === "text")
-      .map((annotation) => (
-        <div
-          key={`text-${annotation.id}`}
-          style={{
-            position: "absolute",
-            left: `${annotation.position.x}%`,
-            top: `${annotation.position.y}%`,
-            transform: "translate(-50%, -50%)",
-            zIndex: 20,
-            cursor: "move",
-            padding: "4px",
-            border: activeTextEditor === annotation.id ? "2px dashed #3b82f6" : "2px solid transparent",
-            borderRadius: "4px",
-            minWidth: "100px",
-            minHeight: "40px",
-            resize: "both",
-            overflow: "auto",
-            backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background for better visibility
-          }}
-          onClick={(e) => handleTextAnnotationClick(annotation.id, e)}
-          onMouseDown={(e) => {
-            if (activeTextEditor === annotation.id) {
-              e.stopPropagation()
-              const startX = e.clientX
-              const startY = e.clientY
+      .map((annotation) => {
+        const isActive = activeTextEditor === annotation.id
+        const style = annotation.style || {}
+        return (
+          <div
+            key={`text-${annotation.id}`}
+            style={{
+              position: "absolute",
+              left: `${annotation.position.x}%`,
+              top: `${annotation.position.y}%`,
+              transform: "translate(-50%, -50%)",
+              zIndex: 20,
+              cursor: "move",
+              padding: "4px",
+              border: isActive ? "2px dashed #3b82f6" : "2px solid transparent",
+              borderRadius: "4px",
+              minWidth: "100px",
+              minHeight: "40px",
+              resize: "both",
+              overflow: "auto",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => handleTextAnnotationClick(annotation.id, e)}
+            onMouseDown={(e) => {
+              if (isActive) {
+                e.stopPropagation()
+                const startX = e.clientX
+                const startY = e.clientY
 
-              const handleMoveAnnotation = (moveEvent) => {
-                const deltaX = moveEvent.clientX - startX
-                const deltaY = moveEvent.clientY - startY
+                const handleMoveAnnotation = (moveEvent) => {
+                  const deltaX = moveEvent.clientX - startX
+                  const deltaY = moveEvent.clientY - startY
 
-                if (containerRect) {
-                  const newX = annotation.position.x + (deltaX / containerRect.width) * 100
-                  const newY = annotation.position.y + (deltaY / containerRect.height) * 100
+                  if (containerRect) {
+                    const newX = annotation.position.x + (deltaX / containerRect.width) * 100
+                    const newY = annotation.position.y + (deltaY / containerRect.height) * 100
 
-                  onUpdateAnnotation(annotation.id, {
-                    ...annotation,
-                    position: {
-                      x: Math.max(0, Math.min(100, newX)),
-                      y: Math.max(0, Math.min(100, newY)),
-                    },
-                  })
+                    onUpdateAnnotation(annotation.id, {
+                      ...annotation,
+                      position: {
+                        x: Math.max(0, Math.min(100, newX)),
+                        y: Math.max(0, Math.min(100, newY)),
+                      },
+                    })
+                  }
                 }
 
-                document.removeEventListener("mousemove", handleMoveAnnotation)
-                document.removeEventListener("mouseup", handleMoveUp)
-              }
+                const handleMoveUp = () => {
+                  document.removeEventListener("mousemove", handleMoveAnnotation)
+                  document.removeEventListener("mouseup", handleMoveUp)
+                }
 
-              const handleMoveUp = () => {
-                document.removeEventListener("mousemove", handleMoveAnnotation)
-                document.removeEventListener("mouseup", handleMoveUp)
+                document.addEventListener("mousemove", handleMoveAnnotation)
+                document.addEventListener("mouseup", handleMoveUp)
               }
+            }}
+          >
+            {/* Toolbar with formatting options */}
+            {isActive && (
+              <div className="absolute -top-8 right-0 flex items-center space-x-2 bg-[#2c2c2c] px-2 py-1 rounded z-30">
+                {/* Bold */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onUpdateAnnotation(annotation.id, {
+                      ...annotation,
+                      style: { ...style, bold: !style.bold },
+                    })
+                  }}
+                  title="Bold"
+                  className={`p-1 rounded ${style.bold ? "bg-blue-600" : "hover:bg-gray-700"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="white"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 10H8V6h5a2 2 0 010 4zM8 14h5a2 2 0 010 4H8v-4z"
+                    />
+                  </svg>
+                </button>
 
-              document.addEventListener("mousemove", handleMoveAnnotation)
-              document.addEventListener("mouseup", handleMoveUp)
-            }
-          }}
-        >
-          {activeTextEditor === annotation.id ? (
-            <textarea
-              ref={textInputRef}
-              value={annotation.content || ""}
-              onChange={(e) => handleTextChange(e, annotation.id)}
-              className="bg-transparent text-white border-none outline-none resize-none w-full h-full"
-              style={{
-                fontSize: `${annotation.style?.fontSize || 24}px`,
-                fontFamily: annotation.style?.fontFamily || "sans-serif",
-                fontWeight: annotation.style?.bold ? "bold" : "normal",
-                fontStyle: annotation.style?.italic ? "italic" : "normal",
-                textDecoration: annotation.style?.underline ? "underline" : "none",
-              }}
-              placeholder="Enter text here"
-            />
-          ) : (
-            <div
-              className="text-white whitespace-pre-wrap w-full h-full"
-              style={{
-                fontSize: `${annotation.style?.fontSize || 24}px`,
-                fontFamily: annotation.style?.fontFamily || "sans-serif",
-                fontWeight: annotation.style?.bold ? "bold" : "normal",
-                fontStyle: annotation.style?.italic ? "italic" : "normal",
-                textDecoration: annotation.style?.underline ? "underline" : "none",
-              }}
-            >
-              {annotation.content || <span className="text-gray-400 italic">Enter text here</span>}
-            </div>
-          )}
-        </div>
-      ))
+                {/* Italic */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onUpdateAnnotation(annotation.id, {
+                      ...annotation,
+                      style: { ...style, italic: !style.italic },
+                    })
+                  }}
+                  title="Italic"
+                  className={`p-1 rounded ${style.italic ? "bg-blue-600" : "hover:bg-gray-700"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="white"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v16m4-16v16" />
+                  </svg>
+                </button>
+
+                {/* Underline */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onUpdateAnnotation(annotation.id, {
+                      ...annotation,
+                      style: { ...style, underline: !style.underline },
+                    })
+                  }}
+                  title="Underline"
+                  className={`p-1 rounded ${style.underline ? "bg-blue-600" : "hover:bg-gray-700"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="white"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v6a6 6 0 0012 0V4M4 20h16" />
+                  </svg>
+                </button>
+
+                {/* Delete */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteAnnotation(annotation.id)
+                    setActiveTextEditor(null)
+                  }}
+                  title="Delete"
+                  className="p-1 rounded hover:bg-red-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="white"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Text content */}
+            {isActive ? (
+              <textarea
+                ref={textInputRef}
+                value={annotation.content || ""}
+                onChange={(e) => handleTextChange(e, annotation.id)}
+                className="bg-transparent text-white border-none outline-none resize-none w-full h-full"
+                style={{
+                  fontSize: `${style.fontSize || 24}px`,
+                  fontFamily: style.fontFamily || "sans-serif",
+                  fontWeight: style.bold ? "bold" : "normal",
+                  fontStyle: style.italic ? "italic" : "normal",
+                  textDecoration: style.underline ? "underline" : "none",
+                }}
+                placeholder="Enter text here"
+              />
+            ) : (
+              <div
+                className="text-white whitespace-pre-wrap w-full h-full"
+                style={{
+                  fontSize: `${style.fontSize || 24}px`,
+                  fontFamily: style.fontFamily || "sans-serif",
+                  fontWeight: style.bold ? "bold" : "normal",
+                  fontStyle: style.italic ? "italic" : "normal",
+                  textDecoration: style.underline ? "underline" : "none",
+                }}
+              >
+                {annotation.content || <span className="text-gray-400 italic">Enter text here</span>}
+              </div>
+            )}
+          </div>
+        )
+      })
   }
 
   // Handle keydown for deleting text annotations

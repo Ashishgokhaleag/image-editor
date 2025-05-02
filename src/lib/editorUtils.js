@@ -1,3 +1,10 @@
+export function forceReflow(element) {
+  if (!element) return;
+
+  // Reading a layout property forces a reflow
+  void element.offsetHeight;
+}
+
 export const applyTransformation = (element, options) => {
   let transforms = [];
   let filters = [];
@@ -29,11 +36,19 @@ export const applyTransformation = (element, options) => {
     }
   }
 
- // Apply finetune adjustments if present
- if (options.finetune) {
-    const { brightness, contrast, saturation, exposure, gamma, clarity, vignette } = options.finetune;
+  // Apply finetune adjustments if present
+  if (options.finetune) {
+    const {
+      brightness,
+      contrast,
+      saturation,
+      exposure,
+      gamma,
+      clarity,
+      vignette,
+    } = options.finetune;
     let filterString = "";
-    
+
     if (brightness !== 0) {
       filterString += `brightness(${1 + brightness / 100}) `;
     }
@@ -47,24 +62,62 @@ export const applyTransformation = (element, options) => {
       filterString += `brightness(${1 + exposure / 100}) `;
     }
     if (gamma !== 0) {
-      filterString += `contrast(${1 + gamma / 100}) saturate(${1 + gamma / 200}) `;
+      filterString += `contrast(${1 + gamma / 100}) saturate(${
+        1 + gamma / 200
+      }) `;
     }
     if (clarity !== 0) {
-      filterString += `contrast(${1 + clarity / 200}) saturate(${1 + clarity / 100}) `;
+      filterString += `contrast(${1 + clarity / 200}) saturate(${
+        1 + clarity / 100
+      }) `;
     }
     if (vignette !== 0) {
       filterString += `brightness(${1 - Math.abs(vignette) / 200}) `;
     }
-    
+
     element.style.filter = filterString.trim() || "none";
   }
 
   // Apply resize (this is actually done through width/height properties)
-  if (options.resize) {
-    element.style.width = `${options.resize.width}px`;
-    element.style.height = `${options.resize.height}px`;
-    element.style.objectFit = "contain";
+if (options.resize) {
+  element.style.width = options.resize.width
+    ? `${options.resize.width}px`
+    : "auto";
+  element.style.height = options.resize.height
+    ? `${options.resize.height}px`
+    : "auto";
+
+  // Force a reflow to ensure changes apply immediately
+  forceReflow(element);
+
+  // Handle canvas element if present
+  if (element.parentNode) {
+    const canvas = element.parentNode.querySelector("canvas");
+    if (canvas) {
+      canvas.style.width = options.resize.width
+        ? `${options.resize.width}px`
+        : "auto";
+      canvas.style.height = options.resize.height
+        ? `${options.resize.height}px`
+        : "auto";
+
+      // Handle zoom behavior
+      if (
+        options.resize.width > element.parentNode.clientWidth ||
+        options.resize.height > element.parentNode.clientHeight
+      ) {
+        canvas.style.maxWidth = "100%";
+        canvas.style.maxHeight = "100%";
+        canvas.style.objectFit = "contain";
+      } else {
+        canvas.style.maxWidth = "none";
+        canvas.style.maxHeight = "none";
+      }
+
+      forceReflow(canvas);
+    }
   }
+}
 
   // Combine transforms and filters
   let style = "";
@@ -119,7 +172,6 @@ function adjustFilterIntensity(filterStyle, intensity) {
   return filterStyle; // In a real app, you'd apply intensity properly
 }
 
-// Calculate new dimensions while maintaining aspect ratio
 export function calculateDimensions(
   originalWidth,
   originalHeight,
@@ -127,6 +179,14 @@ export function calculateDimensions(
   targetHeight,
   maintainAspectRatio
 ) {
+  // If we don't have valid original dimensions, return the target dimensions
+  if (!originalWidth || !originalHeight) {
+    return {
+      width: targetWidth || originalWidth || 0,
+      height: targetHeight || originalHeight || 0,
+    };
+  }
+
   if (!maintainAspectRatio) {
     return {
       width: targetWidth || originalWidth,
@@ -147,7 +207,8 @@ export function calculateDimensions(
       height: targetHeight,
     };
   } else if (targetWidth && targetHeight) {
-    // Maintain aspect ratio based on width
+    // When both dimensions are provided with maintainAspectRatio,
+    // prioritize width and calculate height based on aspect ratio
     return {
       width: targetWidth,
       height: Math.round(targetWidth / aspectRatio),

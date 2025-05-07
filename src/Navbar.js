@@ -10,6 +10,8 @@ const Navbar = () => (
     <NavLink to="/VideoScreen" className="nav-link">Video Screen</NavLink>
     <NavLink to="/iframe" className="nav-link">Superset Iframe</NavLink>
     <NavLink to="/pivot" className="nav-link">Pivot Table</NavLink>
+    <NavLink to="/druidPivot" className="nav-link">Druid Pivot Table</NavLink>
+
   </nav>
 );
 

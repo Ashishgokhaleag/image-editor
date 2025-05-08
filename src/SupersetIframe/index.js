@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import axios from "axios";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
 
-const supersetUrl = "https://superset.dev.platform.ext.mobilityware.com";
-// const supersetUrl = "http://localhost:8088";
-const dashboardId = "c7c4f577-1416-48fd-88ff-a6a8e627220d";
+const supersetUrl = "http://localhost:8088";
+const dashboardId = "36c59be0-aacc-434a-9e55-56b319f052d5";
 
 const supersetApi = axios.create({
   baseURL: supersetUrl,

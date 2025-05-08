@@ -3,6 +3,7 @@ import { Redo, RotateCcw } from "lucide-react";
 import { tools } from "../../constant";
 
 const Sidebar = ({ undo, redo, activeTool, handleToolSelect }) => {
+  console.log(handleToolSelect, "handleToolSelect");
   return (
     <div className="w-20 bg-editor-sidebar border-r border-white/10 flex flex-col items-center py-4 overflow-y-auto">
       <button onClick={() => undo()} className="sidebar-tool mb-2">

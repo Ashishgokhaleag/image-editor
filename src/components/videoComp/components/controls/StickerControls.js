@@ -1,75 +1,106 @@
-
-import React, { useState } from 'react';
-import { Upload } from 'lucide-react';
-import { Button } from '../../../ui/Buttons';
+import { useState } from "react";
+import { Upload } from "lucide-react";
+import { Button } from "../../../ui/Buttons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../ui/tabs";
-import { Label } from '../../../ui/label';
-import { Input } from '../../../ui/input';
+import { Label } from "../../../ui/label";
+import { Input } from "../../../ui/input";
 import { EMOJI_CATEGORIES, MARKER_OPTIONS } from "../../../../lib/constants";
+import { Slider } from "@radix-ui/react-slider";
 
 const StickerControls = ({
   mediaRef,
   mediaType,
   onClose,
   onAddSticker,
+  mediaDimensions,
 }) => {
   const [selectedTab, setSelectedTab] = useState("emoji");
   const [selectedCategory, setSelectedCategory] = useState("faces");
   const [customText, setCustomText] = useState("");
   const [stickerSize, setStickerSize] = useState(64);
-  
+
   const handleAddEmoji = (emoji) => {
     // Directly add the emoji to the center of the media
     onAddSticker({
       type: "emoji",
       content: emoji,
       position: { x: 50, y: 50 }, // Center of the media
-      size: stickerSize
+      size: stickerSize,
     });
   };
-  
+
   const handleAddMarker = (markerId) => {
     onAddSticker({
       type: "marker",
       content: markerId,
       position: { x: 50, y: 50 },
-      size: stickerSize
+      size: stickerSize,
     });
   };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onloadend = () => {
       onAddSticker({
         type: "image",
         content: reader.result,
         position: { x: 50, y: 50 },
-        size: stickerSize
+        size: stickerSize,
       });
     };
     reader.readAsDataURL(file);
   };
 
+  // Handle sticker size change
+  const handleSizeChange = (value) => {
+    // Ensure size is within reasonable bounds
+    setStickerSize(value[0]);
+  };
+
   return (
     <div className="space-y-4">
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+      {/* Size control slider */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="sticker-size" className="text-sm">
+            Sticker Size
+          </Label>
+          <span className="text-sm text-muted-foreground">{stickerSize}px</span>
+        </div>
+        <Slider
+          id="sticker-size"
+          value={[stickerSize]}
+          onValueChange={handleSizeChange}
+          min={20}
+          max={200}
+          step={1}
+        />
+      </div>
+
+      <Tabs
+        value={selectedTab}
+        onValueChange={setSelectedTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="emoji">Emoji</TabsTrigger>
           <TabsTrigger value="custom">Custom</TabsTrigger>
-          {mediaType === "video" && (
+          {/* {mediaType === "video" && (
             <TabsTrigger value="markers">Markers</TabsTrigger>
-          )}
+          )} */}
         </TabsList>
-        
+
         <TabsContent value="emoji" className="space-y-4">
-          <div className="flex space-x-1">
+          <div className="flex flex-wrap gap-1">
             {Object.keys(EMOJI_CATEGORIES).map((category) => (
               <Button
                 key={category}
-                variant={selectedCategory === category ? "secondary" : "outline"}
+                variant={
+                  selectedCategory === category ? "secondary" : "outline"
+                }
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
                 className="text-xs"
@@ -78,8 +109,8 @@ const StickerControls = ({
               </Button>
             ))}
           </div>
-          
-          <div className="grid grid-cols-4 gap-2">
+
+          <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto">
             {EMOJI_CATEGORIES[selectedCategory].map((emoji) => (
               <Button
                 key={emoji}
@@ -93,12 +124,12 @@ const StickerControls = ({
             ))}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="custom" className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="sticker-upload">Select image</Label>
-            <Label 
-              htmlFor="sticker-upload" 
+            <Label
+              htmlFor="sticker-upload"
               className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-700/10"
             >
               <Upload className="w-6 h-6 mb-1" />
@@ -113,7 +144,7 @@ const StickerControls = ({
             />
           </div>
         </TabsContent>
-        
+
         {mediaType === "video" && (
           <TabsContent value="markers" className="space-y-4">
             <div className="grid grid-cols-3 gap-2">

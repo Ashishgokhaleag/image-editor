@@ -1,12 +1,9 @@
-import { useState, RefObject, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { LockIcon, UnlockIcon, RotateCcw } from "lucide-react";
 import { Button } from "../../../ui/Buttons";
 import { Input } from "../../../ui/input";
 import { Switch } from "../../../ui/switch";
-import {
-  ResizeOptions,
-  calculateDimensions,
-} from "../../../../lib/editorUtils";
+import { calculateDimensions, forceReflow } from "../../../../lib/editorUtils";
 
 const ResizeControls = ({
   mediaRef,
@@ -20,6 +17,7 @@ const ResizeControls = ({
     width: 0,
     height: 0,
   });
+  const [containerStyle, setContainerStyle] = useState({});
 
   useEffect(() => {
     setLocalOptions(resizeOptions);
@@ -41,7 +39,13 @@ const ResizeControls = ({
             height: naturalHeight,
           });
 
-          if (localOptions.width === 0 || localOptions.height === 0) {
+          // Only set initial dimensions if they're not already set
+          if (
+            !localOptions.width ||
+            !localOptions.height ||
+            localOptions.width === 0 ||
+            localOptions.height === 0
+          ) {
             const initialOptions = {
               ...localOptions,
               width: naturalWidth,
@@ -49,7 +53,6 @@ const ResizeControls = ({
             };
             setLocalOptions(initialOptions);
             onResizeChange(initialOptions);
-            onApplyResize(); // Auto apply on initial load
           }
         }
       };
@@ -73,6 +76,13 @@ const ResizeControls = ({
     }
   }, [mediaRef, mediaType]);
 
+  // Apply resize immediately whenever localOptions change
+  useEffect(() => {
+    if (localOptions.width > 0 && localOptions.height > 0) {
+      applyResizeImmediately(localOptions);
+    }
+  }, [localOptions]);
+
   const toggleAspectRatio = () => {
     const updated = {
       ...localOptions,
@@ -80,65 +90,144 @@ const ResizeControls = ({
     };
     setLocalOptions(updated);
     onResizeChange(updated);
-    onApplyResize(); // Apply change immediately
+    applyResizeImmediately(updated);
   };
 
   const handleWidthChange = (e) => {
-    const width = parseInt(e.target.value) || 0;
-    let updated;
+    const widthValue = e.target.value;
+    const width = Number.parseInt(widthValue, 10) || 0;
 
+    let updated;
     if (localOptions.maintainAspectRatio && originalDimensions.width > 0) {
-      const { height } = calculateDimensions(
+      const newDimensions = calculateDimensions(
         originalDimensions.width,
         originalDimensions.height,
         width,
         null,
         true
       );
-      updated = { ...localOptions, width, height };
+      updated = {
+        ...localOptions,
+        width: newDimensions.width,
+        height: newDimensions.height,
+      };
     } else {
       updated = { ...localOptions, width };
     }
 
     setLocalOptions(updated);
     onResizeChange(updated);
-    onApplyResize(); // Apply immediately
   };
 
   const handleHeightChange = (e) => {
-    const height = parseInt(e.target.value) || 0;
-    let updated;
+    const heightValue = e.target.value;
+    const height = Number.parseInt(heightValue, 10) || 0;
 
+    let updated;
     if (localOptions.maintainAspectRatio && originalDimensions.height > 0) {
-      const { width } = calculateDimensions(
+      const newDimensions = calculateDimensions(
         originalDimensions.width,
         originalDimensions.height,
         null,
         height,
         true
       );
-      updated = { ...localOptions, width, height };
+      updated = {
+        ...localOptions,
+        width: newDimensions.width,
+        height: newDimensions.height,
+      };
     } else {
       updated = { ...localOptions, height };
     }
 
     setLocalOptions(updated);
     onResizeChange(updated);
-    onApplyResize(); // Apply immediately
+  };
+
+  const applyResizeImmediately = (options) => {
+    const targetOptions = options || localOptions;
+
+    // Get the canvas reference through mediaRef's parent
+    if (mediaRef.current && mediaRef.current.parentNode) {
+      const canvasElem = mediaRef.current.parentNode.querySelector("canvas");
+
+      if (canvasElem && targetOptions?.width && targetOptions?.height) {
+        // Apply the new dimensions to the canvas
+        canvasElem.style.width = `${targetOptions.width}px`;
+        canvasElem.style.height = `${targetOptions.height}px`;
+
+        // Determine if we need to zoom based on container size
+        const containerElem = canvasElem.parentNode;
+        if (containerElem) {
+          const containerRect = containerElem.getBoundingClientRect();
+          const isOverflowingWidth = targetOptions.width > containerRect.width;
+          const isOverflowingHeight =
+            targetOptions.height > containerRect.height;
+
+          if (isOverflowingWidth || isOverflowingHeight) {
+            // Need to zoom out to fit
+            canvasElem.style.maxWidth = "100%";
+            canvasElem.style.maxHeight = "100%";
+            canvasElem.style.objectFit = "contain";
+          } else {
+            // No zoom needed
+            canvasElem.style.maxWidth = "none";
+            canvasElem.style.maxHeight = "none";
+          }
+        }
+
+        // Force a reflow to ensure the changes are applied immediately
+        forceReflow(canvasElem);
+      }
+
+      // Always update the video element dimensions too
+      if (mediaRef.current) {
+        mediaRef.current.style.width = targetOptions.width
+          ? `${targetOptions.width}px`
+          : "auto";
+        mediaRef.current.style.height = targetOptions.height
+          ? `${targetOptions.height}px`
+          : "auto";
+        forceReflow(mediaRef.current);
+      }
+    }
+
+    // Call the parent component's apply function to save the state
+    if (onApplyResize) {
+      onApplyResize(targetOptions);
+    }
   };
 
   const applyPresetSize = (width, fallbackHeight) => {
-    const height = localOptions.maintainAspectRatio
-      ? Math.round((width * originalDimensions.height) / originalDimensions.width)
-      : fallbackHeight;
+    const newWidth = width;
+    let newHeight;
 
-    const updated = { ...localOptions, width, height };
+    if (localOptions.maintainAspectRatio && originalDimensions.width > 0) {
+      // Calculate height based on original aspect ratio
+      const newDimensions = calculateDimensions(
+        originalDimensions.width,
+        originalDimensions.height,
+        newWidth,
+        null,
+        true
+      );
+      newHeight = newDimensions.height;
+    } else {
+      newHeight = fallbackHeight;
+    }
+
+    const updated = { ...localOptions, width: newWidth, height: newHeight };
     setLocalOptions(updated);
     onResizeChange(updated);
-    onApplyResize(); // Apply immediately
+    applyResizeImmediately(updated);
   };
 
   const resetToOriginal = () => {
+    if (originalDimensions.width === 0 || originalDimensions.height === 0) {
+      return; // Don't reset if we don't have original dimensions
+    }
+
     const updated = {
       ...localOptions,
       width: originalDimensions.width,
@@ -146,7 +235,7 @@ const ResizeControls = ({
     };
     setLocalOptions(updated);
     onResizeChange(updated);
-    onApplyResize(); // Apply immediately
+    applyResizeImmediately(updated);
   };
 
   return (
@@ -201,33 +290,6 @@ const ResizeControls = ({
       <div className="space-y-2">
         <h4 className="text-sm font-medium text-white">Preset Sizes</h4>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-gray-400 hover:text-white"
-            onClick={() => applyPresetSize(1280, 720)}
-          >
-            HD(1280x720)
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-gray-400 hover:text-white"
-            onClick={() => applyPresetSize(1920, 1080)}
-          >
-            Full HD(1920x1080)
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-gray-400 hover:text-white"
-            onClick={() => applyPresetSize(1080, 1080)}
-          >
-            Instagram(1080x1080)
-          </Button>
-
           <Button
             variant="outline"
             size="sm"

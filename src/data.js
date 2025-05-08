@@ -19,12 +19,7 @@ const Data = () => {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [openMasking, setOpenMasking] = useState(false);
-
-  const [resolution, setResolution] = useState("standard"); // 'standard' or 'hd'
-  const resolutions = {
-    standard: { width: 1280, height: 720 },
-    hd: { width: 1920, height: 1080 },
-  };
+  const [canvasResolution, setCanvasResolution] = useState("custom");
 
   // Filter panel state
   const [activeFilter, setActiveFilter] = useState("default");
@@ -38,7 +33,8 @@ const Data = () => {
   const [angle, setAngle] = useState(0);
 
   // Annotate panel state
-  const [annotationTool, setAnnotationTool] = useState("sharpie");
+  const [annotationTool, setAnnotationTool] = useState("");
+  console.log(annotationTool, "annotationTool");
   const [lineColor, setLineColor] = useState("#ffffff");
   const [lineWidth, setLineWidth] = useState("small");
   const [isDrawing, setIsDrawing] = useState(false);
@@ -57,10 +53,7 @@ const Data = () => {
   // Initialize canvas only once when component mounts
   useEffect(() => {
     if (canvasRef.current) {
-      const { width, height } = resolutions[resolution];
       const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-        width,
-        height,
         backgroundColor: "#333",
       });
       setCanvas(fabricCanvas);
@@ -71,21 +64,17 @@ const Data = () => {
     }
   }, []); // Only run once on mount
 
-  // Update canvas dimensions when resolution changes
-  useEffect(() => {
-    if (canvas) {
-      const { width, height } = resolutions[resolution];
-      canvas.setWidth(width);
-      canvas.setHeight(height);
-      canvas.renderAll();
-    }
-  }, [resolution, canvas]);
-
   useEffect(() => {
     if (expandedPanel === "annotate") {
       setAnnotationTool("sharpie");
     } else {
-      setAnnotationTool("");
+      if (!canvas) return;
+      canvas.isDrawingMode = false;
+      setAnnotationTool(null);
+    }
+
+    if (!expandedPanel === "annotate" && canvas) {
+      canvas.isDrawingMode = false;
     }
   }, [expandedPanel]);
 
@@ -174,17 +163,14 @@ const Data = () => {
           // Store the original image object for later use
           setImageObj(img);
 
-          // Set canvas dimensions based on selected resolution
-          const { width, height } = resolutions[resolution];
-
-          // Scale and position the image on the canvas
-          const scaleFactor = Math.min(width / img.width, height / img.height);
-          img.scale(scaleFactor);
+          // Set canvas dimensions to match the image size
+          canvas.setWidth(img.width);
+          canvas.setHeight(img.height);
 
           // Center the image
           img.set({
-            left: (width - img.width * scaleFactor) / 2,
-            top: (height - img.height * scaleFactor) / 2,
+            left: 0,
+            top: 0,
             selectable: false,
           });
 
@@ -195,6 +181,9 @@ const Data = () => {
           setLoading(false);
           setActiveFilter("default");
           setActiveFrame("None");
+
+          // Set the uploaded image as the active image
+          setActiveImage(img);
 
           // Save the initial state to history
           saveCanvasState();
@@ -234,6 +223,7 @@ const Data = () => {
       setExpandedPanel(tool);
       setMaskingMode(tool === "masking");
     }
+    setAnnotationTool(null); // Reset annotation tool when a sidebar option is selected
   };
 
   // Tool code after solving infinite text renders
@@ -270,6 +260,8 @@ const Data = () => {
       setCropRect(null);
     }
 
+    console.log("expandedPanel>>>", expandedPanel);
+
     if (expandedPanel === "annotate") {
       if (
         annotationTool === "line" ||
@@ -283,7 +275,10 @@ const Data = () => {
         annotationTool === "eraser" ||
         annotationTool === "path"
       ) {
-        canvas.isDrawingMode = true;
+        console.log("annotationTool>>>>", annotationTool);
+        if (annotationTool === "sharpie") {
+          canvas.isDrawingMode = true;
+        }
         canvas.freeDrawingBrush.color =
           annotationTool === "eraser" ? "#ffffff" : lineColor;
         canvas.freeDrawingBrush.width =
@@ -740,6 +735,7 @@ const Data = () => {
       canvas.add(croppedImg);
       canvas.sendToBack(croppedImg);
       setImageObj(croppedImg);
+      setActiveImage(croppedImg); // Set the cropped image as active
     });
 
     setCropRect(null);
@@ -798,10 +794,10 @@ const Data = () => {
     };
 
     const frame = new fabric.Rect({
-      left: activeImage.left,
-      top: activeImage.top,
-      width: activeImage.width * activeImage.scaleX,
-      height: activeImage.height * activeImage.scaleY,
+      left: activeImage.left - frameStyle.strokeWidth / 2,
+      top: activeImage.top - frameStyle.strokeWidth / 2,
+      width: activeImage.width,
+      height: activeImage.height,
       fill: "transparent",
       ...frameStyle,
       selectable: false,
@@ -988,59 +984,6 @@ const Data = () => {
     });
   };
 
-  const changeResolution = (res) => {
-    if (!canvas) return;
-
-    setResolution(res);
-
-    // If we have an image loaded, we need to reload and rescale it
-    if (originalImageData && canvas) {
-      setLoading(true);
-
-      fabric.Image.fromURL(
-        originalImageData,
-        (img) => {
-          // Clear the canvas
-          canvas.clear();
-
-          // Store the image object
-          setImageObj(img);
-
-          // Get new dimensions
-          const { width, height } = resolutions[res];
-
-          // Scale image to fit the new canvas size
-          const scaleFactor = Math.min(width / img.width, height / img.height);
-          img.scale(scaleFactor);
-
-          // Center the image
-          img.set({
-            left: (width - img.width * scaleFactor) / 2,
-            top: (height - img.height * scaleFactor) / 2,
-            selectable: false,
-          });
-
-          // Add the image to canvas
-          canvas.add(img);
-          canvas.sendToBack(img);
-
-          // Set the active image
-          setActiveImage(img);
-          setLoading(false);
-
-          // Restore any filters or adjustments
-          if (activeFilter !== "default") {
-            applyFilter(activeFilter);
-          }
-
-          // Save the new state
-          saveCanvasState();
-        },
-        { crossOrigin: "anonymous" }
-      );
-    }
-  };
-
   // Add to your useEffect for canvas events
   useEffect(() => {
     if (!canvas) return;
@@ -1113,6 +1056,120 @@ const Data = () => {
     }
   }, [maskingMode, setupMaskingInteractions]);
 
+  // Ensure crop rectangle stays within image bounds
+  useEffect(() => {
+    if (!canvas || !cropRect) return;
+
+    const handleCropRectMoving = (e) => {
+      const obj = e.target;
+      if (obj === cropRect) {
+        const bound = obj.getBoundingRect();
+        const imageBound = activeImage.getBoundingRect();
+
+        if (bound.left < imageBound.left) {
+          obj.left = imageBound.left;
+        }
+        if (bound.top < imageBound.top) {
+          obj.top = imageBound.top;
+        }
+        if (bound.left + bound.width > imageBound.left + imageBound.width) {
+          obj.left = imageBound.left + imageBound.width - bound.width;
+        }
+        if (bound.top + bound.height > imageBound.top + imageBound.height) {
+          obj.top = imageBound.top + imageBound.height - bound.height;
+        }
+      }
+    };
+
+    canvas.on("object:moving", handleCropRectMoving);
+
+    return () => {
+      canvas.off("object:moving", handleCropRectMoving);
+    };
+  }, [canvas, cropRect, activeImage]);
+
+  const handleResolutionChange = (resolution) => {
+    if (!canvas || !originalImageData) return;
+
+    setCanvasResolution(resolution);
+
+    let newWidth, newHeight;
+
+    switch (resolution) {
+      case "hd":
+        newWidth = 1280;
+        newHeight = 720;
+        break;
+      case "standard":
+        newWidth = 640;
+        newHeight = 480;
+        break;
+      case "custom":
+      default:
+        // If we're going back to custom, use the original image dimensions
+        fabric.Image.fromURL(
+          originalImageData,
+          (img) => {
+            canvas.setWidth(img.width);
+            canvas.setHeight(img.height);
+
+            // Clear the canvas and add the image
+            canvas.clear();
+            img.set({
+              left: 0,
+              top: 0,
+              selectable: false,
+            });
+
+            canvas.add(img);
+            canvas.renderAll();
+            setActiveImage(img);
+            saveCanvasState();
+          },
+          { crossOrigin: "anonymous" }
+        );
+        return;
+    }
+
+    // Resize canvas
+    canvas.setWidth(newWidth);
+    canvas.setHeight(newHeight);
+
+    // Load the original image and scale it to fit the new canvas size
+    fabric.Image.fromURL(
+      originalImageData,
+      (img) => {
+        // Clear the canvas
+        canvas.clear();
+
+        // Scale the image to fit the canvas while maintaining aspect ratio
+        const imgAspect = img.width / img.height;
+        const canvasAspect = newWidth / newHeight;
+
+        if (imgAspect > canvasAspect) {
+          // Image is wider than canvas (relative to height)
+          img.scaleToWidth(newWidth);
+        } else {
+          // Image is taller than canvas (relative to width)
+          img.scaleToHeight(newHeight);
+        }
+
+        // Center the image
+        img.set({
+          left: (newWidth - img.getScaledWidth()) / 2,
+          top: (newHeight - img.getScaledHeight()) / 2,
+          selectable: false,
+        });
+
+        canvas.add(img);
+        canvas.renderAll();
+        setActiveImage(img);
+        saveCanvasState();
+      },
+      { crossOrigin: "anonymous" }
+    );
+  };
+
   return (
     <div className="min-h-screen overflow-hidden bg-editor-dark flex flex-col relative">
       <div className="px-4 py-3 flex justify-between items-center border-b border-white/10">
@@ -1126,14 +1183,23 @@ const Data = () => {
         />
         <div className="flex gap-3">
           <div className="flex items-center justify-center space-x-4">
+            {/* <select
+              id="resolution"
+              className="block w-48 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-white text-gray-700 text-sm"
+              value="custom"
+              disabled
+            >
+              <option value="custom">Custom (Image Size)</option>
+            </select> */}
             <select
               id="resolution"
               className="block w-48 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-white text-gray-700 text-sm"
-              value={resolution}
-              onChange={(e) => changeResolution(e.target.value)}
+              value={canvasResolution}
+              onChange={(e) => handleResolutionChange(e.target.value)}
             >
-              <option value="standard">Standard (1280x720)</option>
-              <option value="hd">HD (1920x1080)</option>
+              <option value="custom">Custom (Image Size)</option>
+              <option value="hd">HD (1280x720)</option>
+              <option value="standard">Standard (640x480)</option>
             </select>
           </div>
 
@@ -1251,4 +1317,3 @@ const Data = () => {
 };
 
 export default Data;
-

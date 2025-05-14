@@ -686,48 +686,119 @@ const Data = () => {
     saveCanvasState();
   };
 
-  // handleApplyCrop
+  // handleApplyCrop old one which is capturing the white crop area as well
+  // const handleApplyCrop = () => {
+  //   if (!canvas || !imageObj || !cropRect) return;
+
+  //   const { left, top, width, height } = cropRect;
+  //   setCropMode(false);
+
+  //   // Create cropped image using canvas.toDataURL
+  //   const croppedCanvas = document.createElement("canvas");
+  //   const ctx = croppedCanvas.getContext("2d");
+
+  //   croppedCanvas.width = width;
+  //   croppedCanvas.height = height;
+
+  //   const originalCanvas = canvas.toCanvasElement(); // Convert fabric canvas to normal canvas
+  //   ctx.drawImage(
+  //     originalCanvas,
+  //     left,
+  //     top,
+  //     width,
+  //     height,
+  //     0,
+  //     0,
+  //     width,
+  //     height
+  //   );
+
+  //   const croppedDataUrl = croppedCanvas.toDataURL(); // Convert to base64 image
+
+  //   // Save the cropped image as the new original image data
+  //   setOriginalImageData(croppedDataUrl);
+
+  //   fabric.Image.fromURL(croppedDataUrl, (croppedImg) => {
+  //     croppedImg.set({
+  //       left: 0, // Align to top-left corner
+  //       top: 0, // Align to top-left corner
+  //       selectable: false,
+  //       hasBorders: false,
+  //       hasControls: false,
+  //       opacity: 1, // Ensure full opacity
+  //     });
+
+  //     // Ensure the image fits the canvas exactly
+  //     croppedImg.scaleToWidth(canvas.width);
+  //     croppedImg.scaleToHeight(canvas.height);
+
+  //     canvas.clear();
+  //     canvas.add(croppedImg);
+  //     canvas.sendToBack(croppedImg);
+  //     setImageObj(croppedImg);
+  //     setActiveImage(croppedImg); // Set the cropped image as active
+  //   });
+
+  //   setCropRect(null);
+  //   setCropMode(false);
+  //   saveCanvasState();
+  // }; 
+
   const handleApplyCrop = () => {
     if (!canvas || !imageObj || !cropRect) return;
 
-    const { left, top, width, height } = cropRect;
+    const boundingRect = cropRect.getBoundingRect();
+    const { left, top, width, height } = boundingRect;
 
-    // Create cropped image using canvas.toDataURL
+    // const { left, top, width, height } = cropRect;                              
+    setCropMode(false);
+
+    // Get the actual image element from the Fabric image object
+    const imgEl = imageObj.getElement();
+  
+    // Adjust crop based on the scale and position of the image on the canvas
+    const scaleX = imageObj.scaleX || 1;
+    const scaleY = imageObj.scaleY || 1;
+    const offsetX = imageObj.left || 0;
+    const offsetY = imageObj.top || 0;
+
+    // Calculate actual cropping coordinates on the image
+    const cropX = (left - offsetX) / scaleX;
+    const cropY = (top - offsetY) / scaleY;
+    const cropW = width / scaleX;
+    const cropH = height / scaleY;
+
+    // Create a new canvas to draw the cropped area
     const croppedCanvas = document.createElement("canvas");
+    croppedCanvas.width = cropW;
+    croppedCanvas.height = cropH;
+
     const ctx = croppedCanvas.getContext("2d");
-
-    croppedCanvas.width = width;
-    croppedCanvas.height = height;
-
-    const originalCanvas = canvas.toCanvasElement(); // Convert fabric canvas to normal canvas
     ctx.drawImage(
-      originalCanvas,
-      left,
-      top,
-      width,
-      height,
+      imgEl,
+      cropX,
+      cropY,
+      cropW,
+      cropH, // source
       0,
       0,
-      width,
-      height
+      cropW,
+      cropH // destination
     );
 
-    const croppedDataUrl = croppedCanvas.toDataURL(); // Convert to base64 image
-
-    // Save the cropped image as the new original image data
+    const croppedDataUrl = croppedCanvas.toDataURL();
     setOriginalImageData(croppedDataUrl);
 
     fabric.Image.fromURL(croppedDataUrl, (croppedImg) => {
       croppedImg.set({
-        left: 0, // Align to top-left corner
-        top: 0, // Align to top-left corner
+        left: 0,
+        top: 0,
         selectable: false,
         hasBorders: false,
         hasControls: false,
-        opacity: 1, // Ensure full opacity
+        opacity: 1,
       });
 
-      // Ensure the image fits the canvas exactly
       croppedImg.scaleToWidth(canvas.width);
       croppedImg.scaleToHeight(canvas.height);
 
@@ -735,9 +806,11 @@ const Data = () => {
       canvas.add(croppedImg);
       canvas.sendToBack(croppedImg);
       setImageObj(croppedImg);
-      setActiveImage(croppedImg); // Set the cropped image as active
+      setActiveImage(croppedImg);
     });
-
+    if (cropRect) {
+      canvas.remove(cropRect);
+    }
     setCropRect(null);
     setCropMode(false);
     saveCanvasState();

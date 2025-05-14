@@ -346,6 +346,50 @@ const MarkerSticker = ({ sticker, isSelected, onSelect, onChange, stageSize }) =
   )
 }
 
+// Custom Text Annotation component
+const TextAnnotation = ({ annotation, isSelected, onClick, onDragEnd, onTransformEnd, stageSize }) => {
+  const textRef = useRef(null)
+
+  // Extract text content from HTML or use empty string
+  const extractTextContent = (htmlContent) => {
+    if (htmlContent === undefined || htmlContent === null) return ""
+    // Remove HTML tags and decode entities
+    return htmlContent.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ")
+  }
+
+  // Get the text content to display
+  const displayText = extractTextContent(annotation.content)
+
+  // Calculate position
+  const x = (annotation.position?.x / 100) * stageSize.width
+  const y = (annotation.position?.y / 100) * stageSize.height
+
+  return (
+    <Text
+      ref={textRef}
+      id={`annotation-${annotation.id}`}
+      x={x}
+      y={y}
+      text={displayText} // Use the extracted text content
+      fontSize={annotation.style?.fontSize || 24}
+      fontFamily={annotation.style?.fontFamily || "sans-serif"}
+      fontStyle={annotation.style?.italic ? "italic" : "normal"}
+      fontWeight={annotation.style?.bold ? "bold" : "normal"}
+      textDecoration={annotation.style?.underline ? "underline" : undefined}
+      fill={annotation.style?.color || "#FFFFFF"}
+      align={annotation.style?.textAlign || "left"}
+      padding={5}
+      draggable
+      onClick={onClick}
+      onTap={onClick}
+      onDragEnd={onDragEnd}
+      onTransformEnd={onTransformEnd}
+      stroke={annotation.style?.stroke || undefined}
+      strokeWidth={annotation.style?.strokeWidth || undefined}
+    />
+  )
+}
+
 const MediaPreview = ({
   mediaRef,
   canvasRef,
@@ -1062,13 +1106,29 @@ const MediaPreview = ({
             // Skip rendering eraser tool
             if (annotation.type === "eraser") return null
 
-            const x = (annotation.position?.x / 100) * stageSize.width
-            const y = (annotation.position?.y / 100) * stageSize.height
-
             // Skip rendering text annotation if it's being edited in the inline editor
             if (showTextEditor && editingTextAnnotation && editingTextAnnotation.id === annotation.id) {
               return null
             }
+
+            // For text annotations, use our custom component
+            if (annotation.type === "text") {
+              return (
+                <TextAnnotation
+                  key={annotation.id}
+                  annotation={annotation}
+                  isSelected={activeAnnotation === annotation.id}
+                  onClick={() => handleAnnotationClick(annotation.id)}
+                  onDragEnd={(e) => handleAnnotationDragEnd(annotation.id, e)}
+                  onTransformEnd={(e) => handleAnnotationTransform(annotation.id, e)}
+                  stageSize={stageSize}
+                />
+              )
+            }
+
+            // For other annotation types
+            const x = (annotation.position?.x / 100) * stageSize.width
+            const y = (annotation.position?.y / 100) * stageSize.height
 
             // Common props for all annotation types
             const commonProps = {
@@ -1085,44 +1145,6 @@ const MediaPreview = ({
             }
 
             switch (annotation.type) {
-              case "text":
-                // Fix: Always render text content even if it's empty or partially deleted
-                return (
-                  <Text
-                    {...commonProps}
-                    x={x}
-                    y={y}
-                    text={annotation.content !== undefined ? String(annotation.content).replace(/<[^>]*>?/gm, "") : ""}
-                    fontSize={annotation.style?.fontSize || 24}
-                    fontFamily={annotation.style?.fontFamily || "sans-serif"}
-                    fontStyle={annotation.style?.italic ? "italic" : "normal"}
-                    fontWeight={annotation.style?.bold ? "bold" : "normal"}
-                    textDecoration={annotation.style?.underline ? "underline" : undefined}
-                    fill={annotation.style?.color || "#FFFFFF"}
-                    align={annotation.style?.textAlign || "left"}
-                    padding={5}
-                    onClick={() => {
-                      setEditingTextAnnotation(annotation)
-                      setShowTextEditor(true)
-                      setActiveAnnotation(annotation.id)
-                    }}
-                    onTap={() => {
-                      setEditingTextAnnotation(annotation)
-                      setShowTextEditor(true)
-                      setActiveAnnotation(annotation.id)
-                    }}
-                    onDblClick={() => {
-                      setEditingTextAnnotation(annotation)
-                      setShowTextEditor(true)
-                      setActiveAnnotation(annotation.id)
-                    }}
-                    onDblTap={() => {
-                      setEditingTextAnnotation(annotation)
-                      setShowTextEditor(true)
-                      setActiveAnnotation(annotation.id)
-                    }}
-                  />
-                )
               case "rectangle":
                 return (
                   <Rect

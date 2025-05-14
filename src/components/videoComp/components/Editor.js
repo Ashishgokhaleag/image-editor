@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react"
 import { ArrowLeft, Download, Undo, Redo } from "lucide-react"
 import { Button } from "../../ui/Buttons"
@@ -6,7 +7,6 @@ import EditorControls from "./EditorControls"
 import VideoControls from "./controls/VideoControls"
 import CropControls from "./controls/CropControls"
 import FilterControls from "./controls/FilterControls"
-import ResizeControls from "./controls/ResizeControls"
 import AnnotateControls from "./controls/AnnotateControls"
 import StickerControls from "./controls/StickerControls"
 import { applyTransformation, getFilterStyle } from "../../../lib/editorUtils"
@@ -423,6 +423,19 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
   }
 
   const applyFinetune = () => {
+    // Make sure to update any text annotations with the current color settings
+    annotations.forEach((annotation) => {
+      if (annotation.type === "text" && annotation.style) {
+        handleUpdateAnnotation(annotation.id, {
+          style: {
+            ...annotation.style,
+            // Ensure color is updated if it was changed
+            color: annotation.style.color,
+          },
+        })
+      }
+    })
+
     addToHistory({ finetune: adjustments })
   }
 
@@ -471,7 +484,7 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
                 italic: annotation.style?.italic || false,
                 underline: annotation.style?.underline || false,
                 color: annotation.style?.color || "#FFFFFF",
-                backgroundColor: annotation.style?.backgroundColor || "rgba(0, 0, 0, 0.5)",
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
                 textAlign: annotation.style?.textAlign || "left",
               }
             : {
@@ -487,6 +500,8 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
 
   // Update the handleUpdateAnnotation function to ensure it properly handles text content updates
   const handleUpdateAnnotation = (id, newProperties) => {
+    console.log("Updating annotation:", id, newProperties)
+
     setAnnotations((prev) => {
       // Check if annotation exists
       const exists = prev.some((a) => a.id === id)
@@ -516,13 +531,16 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
                 updatedProps.content = annotation.content
               }
 
-              // Allow empty or modified content (including shorter than original)
+              // Ensure content is preserved even when shortened
               if (updatedProps.content !== undefined) {
-                // Keep the content as provided, even if empty or shorter
+                // Make sure content is treated as a string
+                updatedProps.content = String(updatedProps.content)
               }
             }
 
-            return { ...annotation, ...updatedProps }
+            const updated = { ...annotation, ...updatedProps }
+            console.log("Updated annotation:", updated)
+            return updated
           }
           return annotation
         })
@@ -871,15 +889,17 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
           />
         )
       case "resize":
-        return (
-          <ResizeControls
-            mediaRef={mediaRef}
-            mediaType={mediaType}
-            resizeOptions={resizeOptions}
-            onResizeChange={handleResizeChange}
-            onApplyResize={applyResize}
-          />
-        )
+        return null
+      // return (
+      //   <ResizeControls
+      //     mediaRef={mediaRef}
+      //     mediaType={mediaType}
+      //     resizeOptions={resizeOptions}
+      //     onResizeChange={handleResizeChange}
+      //     onApplyResize={applyResize}
+      //     containerRef={containerRef} // Pass the container reference
+      //   />
+      // )
       default:
         return null
     }

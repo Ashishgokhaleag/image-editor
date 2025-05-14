@@ -1,7 +1,7 @@
 // "proxy": "http://localhost:8888",
-import React, { useEffect, useState } from 'react';
-import { fetchWikipediaData } from './api/druid';
-import './style.css';
+import React, { useEffect, useState } from "react";
+import { fetchWikipediaData } from "./api/druid";
+import "./style.css";
 
 function Druid() {
   const [rows, setRows] = useState([]);
@@ -13,7 +13,7 @@ function Druid() {
         const data = await fetchWikipediaData();
         setRows(data);
       } catch (e) {
-        console.error('Failed to fetch data:', e);
+        console.error("Failed to fetch data:", e);
       } finally {
         setLoading(false);
       }
@@ -24,30 +24,30 @@ function Druid() {
 
   return (
     <div className="App">
-      <h1>📘 Wikipedia Druid Data</h1>
+      <h1>📘 Druid Data</h1>
 
       {loading ? (
         <p>Loading data...</p>
       ) : (
-        <table border="1" cellPadding="5">
-          <thead>
-            <tr>
-              {rows[0] &&
-                Object.keys(rows[0]).map((key) => (
-                  <th key={key}>{key}</th>
-                ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={index}>
-                {Object.values(row).map((val, i) => (
-                  <td key={i}>{val?.toString()}</td>
-                ))}
+        <div className="table-container">
+          <table border="1" cellPadding="5">
+            <thead>
+              <tr>
+                {rows[0] &&
+                  Object.keys(rows[0]).map((key) => <th key={key}>{key}</th>)}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  {Object.values(row).map((val, i) => (
+                    <td key={i}>{val?.toString()}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

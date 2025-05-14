@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import axios from "axios";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
 
-const supersetUrl = "http://localhost:8088";
-const dashboardId = "36c59be0-aacc-434a-9e55-56b319f052d5";
+// const supersetUrl = "http://localhost:8088";
+const supersetUrl = "https://superset.dev.platform.ext.mobilityware.com";
+const dashboardId = "71acc3e4-9880-484a-ac28-7d4e05a0db32";
 
 const supersetApi = axios.create({
   baseURL: supersetUrl,
@@ -16,7 +17,6 @@ supersetApi.interceptors.request.use((config) => {
   }
   return config;
 });
-
 // Get CSRF Token
 const getCSRFToken = async () => {
   const res = await supersetApi.get("/api/v1/security/csrf_token/", {
@@ -77,20 +77,24 @@ const getTokenAndEmbedDashboard = async () => {
     );
 
     const guestToken = guestTokenResponse.data.token;
-
+    console.log(guestToken,'guestToken')
     await embedDashboard({
-      id: dashboardId,
-      supersetDomain: supersetUrl,
+      id: "71acc3e4-9880-484a-ac28-7d4e05a0db32",
+      supersetDomain: "https://superset.dev.platform.ext.mobilityware.com",
       mountPoint: document.getElementById("superset-container"),
       fetchGuestToken: () => guestToken,
       dashboardUiConfig: { hideTitle: true },
     });
 
-      const iframe = document.querySelector("#superset-container iframe");
-      if (iframe) {
-        iframe.style.width = "100%";
-        iframe.style.minHeight = "100vh";
-      }
+    const iframe = document.querySelector("#superset-container iframe");
+    if (iframe) {
+      iframe.style.width = "100%";
+      iframe.style.minHeight = "100vh";
+      iframe.setAttribute(
+        "sandbox",
+        "allow-scripts allow-same-origin allow-forms allow-popups"
+      );
+    }
   } catch (error) {
     console.error("Error embedding Superset dashboard:", error);
   }
@@ -101,9 +105,7 @@ function SupersetIframe() {
     getTokenAndEmbedDashboard();
   }, []);
 
-  return (
-      <div id="superset-container" />
-  );
+  return <div id="superset-container" />;
 }
 
 export default SupersetIframe;

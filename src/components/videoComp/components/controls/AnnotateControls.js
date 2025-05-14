@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../ui/tabs"
 import { Slider } from "../../../ui/slider"
@@ -449,61 +451,38 @@ const AnnotateControls = ({
     }
   }
 
-  // Update the handleUpdateAnnotation function to ensure it properly handles text content updates
-  const handleUpdateAnnotation = (id, newProperties) => {
-    setAnnotations((prev) => {
-      // Check if annotation exists
-      const exists = prev.some((a) => a.id === id)
 
-      if (exists) {
-        // Update existing annotation
-        return prev.map((annotation) => {
-          if (annotation.id === id) {
-            // For rectangles, ensure width and height are reasonable
-            const updatedProps = { ...newProperties }
 
-            if (annotation.type === "rectangle" || newProperties.type === "rectangle") {
-              // Limit maximum width and height to prevent full-screen expansion
-              if (updatedProps.width && updatedProps.width > mediaDimensions.width) {
-                updatedProps.width = mediaDimensions.width * 0.8
-              }
-
-              if (updatedProps.height && updatedProps.height > mediaDimensions.height) {
-                updatedProps.height = mediaDimensions.height * 0.8
-              }
-            }
-
-            // For text annotations, ensure content is properly handled
-            if (annotation.type === "text") {
-              // If we're updating style but not content, keep the existing content
-              if (updatedProps.style && updatedProps.content === undefined) {
-                updatedProps.content = annotation.content
-              }
-
-              // Allow empty or modified content (including shorter than original)
-              if (updatedProps.content !== undefined) {
-                // Keep the content as provided, even if empty or shorter
-              }
-            }
-
-            return { ...annotation, ...updatedProps }
-          }
-          return annotation
-        })
-      } else {
-        // Add as new annotation if it doesn't exist
-        const newAnnotation = { id, ...newProperties }
-        return [...prev, newAnnotation]
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isInputFocused =
+        document.activeElement.tagName === "INPUT" ||
+        document.activeElement.tagName === "TEXTAREA" ||
+        document.activeElement.getAttribute("contenteditable") === "true"
+  
+      // Prevent global delete when editing text
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (isInputFocused) {
+          // Let the editor handle it
+          e.stopPropagation()
+          return
+        }
+  
+        // Your custom logic for deletion outside of input
+        if (selectedAnnotation) {
+          onDeleteAnnotation(selectedAnnotation)
+          setSelectedAnnotation(null)
+        }
       }
-    })
-
-    // Force a re-render of the canvas
-    setTimeout(() => {
-      if (stageRef.current) {
-        stageRef.current.batchDraw()
-      }
-    }, 50)
-  }
+    }
+  
+    window.addEventListener("keydown", handleKeyDown)
+  
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [selectedAnnotation])
+  
 
   return (
     <div className="space-y-1">

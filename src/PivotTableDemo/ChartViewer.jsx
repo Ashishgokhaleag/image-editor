@@ -68,6 +68,27 @@ const ChartExplorer = () => {
 
   const { xKey, numericKeys, allKeys } = getChartKeys(chartData);
 
+  useEffect(() => {
+    const handleResize = () => {
+      // Force remount after resizing
+      setPivotKey((prev) => prev + 1);
+    };
+  
+    let timeoutId = null;
+  
+    const debounceResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleResize, 500); // delay
+    };
+  
+    window.addEventListener("resize", debounceResize);
+  
+    return () => {
+      window.removeEventListener("resize", debounceResize);
+    };
+  }, []);
+  
+
   return (
     <div style={{ padding: "20px" }}>
       <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>

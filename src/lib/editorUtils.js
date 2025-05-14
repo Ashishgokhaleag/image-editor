@@ -1,162 +1,153 @@
 export function forceReflow(element) {
-  if (!element) return;
+  if (!element) return
 
   // Reading a layout property forces a reflow
-  void element.offsetHeight;
+  void element.offsetHeight
 }
 
 export const applyTransformation = (element, options) => {
-  let transforms = [];
-  let filters = [];
+  const transforms = []
+  const filters = []
 
   // Apply crop transformations
   if (options.crop) {
     // Handle rotation
     if (options.crop.rotation !== 0) {
-      transforms.push(`rotate(${options.crop.rotation}deg)`);
+      transforms.push(`rotate(${options.crop.rotation}deg)`)
     }
 
     // Handle flips
     if (options.crop.flip.horizontal) {
-      transforms.push("scaleX(-1)");
+      transforms.push("scaleX(-1)")
     }
     if (options.crop.flip.vertical) {
-      transforms.push("scaleY(-1)");
+      transforms.push("scaleY(-1)")
     }
   }
 
   // Apply filter effects
   if (options.filter && options.filter.name) {
-    const filterStyle = getFilterStyle(options.filter.name);
+    const filterStyle = getFilterStyle(options.filter.name)
     if (filterStyle !== "none") {
       // Apply intensity
-      filters.push(
-        adjustFilterIntensity(filterStyle, options.filter.intensity)
-      );
+      filters.push(adjustFilterIntensity(filterStyle, options.filter.intensity))
     }
   }
 
   // Apply finetune adjustments if present
   if (options.finetune) {
-    const {
-      brightness,
-      contrast,
-      saturation,
-      exposure,
-      gamma,
-      clarity,
-      vignette,
-    } = options.finetune;
-    let filterString = "";
+    const { brightness, contrast, saturation, exposure, gamma, clarity, vignette } = options.finetune
+    let filterString = ""
 
     if (brightness !== 0) {
-      filterString += `brightness(${1 + brightness / 100}) `;
+      filterString += `brightness(${1 + brightness / 100}) `
     }
     if (contrast !== 0) {
-      filterString += `contrast(${1 + contrast / 100}) `;
+      filterString += `contrast(${1 + contrast / 100}) `
     }
     if (saturation !== 0) {
-      filterString += `saturate(${1 + saturation / 100}) `;
+      filterString += `saturate(${1 + saturation / 100}) `
     }
     if (exposure !== 0) {
-      filterString += `brightness(${1 + exposure / 100}) `;
+      filterString += `brightness(${1 + exposure / 100}) `
     }
     if (gamma !== 0) {
-      filterString += `contrast(${1 + gamma / 100}) saturate(${
-        1 + gamma / 200
-      }) `;
+      filterString += `contrast(${1 + gamma / 200}) saturate(${1 + gamma / 200}) `
     }
     if (clarity !== 0) {
-      filterString += `contrast(${1 + clarity / 200}) saturate(${
-        1 + clarity / 100
-      }) `;
+      filterString += `contrast(${1 + clarity / 200}) saturate(${1 + clarity / 100}) `
     }
     if (vignette !== 0) {
-      filterString += `brightness(${1 - Math.abs(vignette) / 200}) `;
+      filterString += `brightness(${1 - Math.abs(vignette) / 200}) `
     }
 
-    element.style.filter = filterString.trim() || "none";
+    element.style.filter = filterString.trim() || "none"
   }
 
   // Apply resize (this is actually done through width/height properties)
-if (options.resize) {
-  element.style.width = options.resize.width
-    ? `${options.resize.width}px`
-    : "auto";
-  element.style.height = options.resize.height
-    ? `${options.resize.height}px`
-    : "auto";
+  if (options.resize) {
+    element.style.width = options.resize.width ? `${options.resize.width}px` : "auto"
+    element.style.height = options.resize.height ? `${options.resize.height}px` : "auto"
 
-  // Force a reflow to ensure changes apply immediately
-  forceReflow(element);
+    // Ensure the video is centered
+    element.style.display = "block"
+    element.style.margin = "0 auto"
 
-  // Handle canvas element if present
-  if (element.parentNode) {
-    const canvas = element.parentNode.querySelector("canvas");
-    if (canvas) {
-      canvas.style.width = options.resize.width
-        ? `${options.resize.width}px`
-        : "auto";
-      canvas.style.height = options.resize.height
-        ? `${options.resize.height}px`
-        : "auto";
+    // Make sure the video is visible and properly contained
+    element.style.maxWidth = "100%"
+    element.style.maxHeight = "100%"
+    element.style.objectFit = "contain"
 
-      // Handle zoom behavior
-      if (
-        options.resize.width > element.parentNode.clientWidth ||
-        options.resize.height > element.parentNode.clientHeight
-      ) {
-        canvas.style.maxWidth = "100%";
-        canvas.style.maxHeight = "100%";
-        canvas.style.objectFit = "contain";
-      } else {
-        canvas.style.maxWidth = "none";
-        canvas.style.maxHeight = "none";
+    // Force a reflow to ensure changes apply immediately
+    forceReflow(element)
+
+    // Handle canvas element if present
+    if (element.parentNode) {
+      const canvas = element.parentNode.querySelector("canvas")
+      if (canvas) {
+        canvas.style.width = options.resize.width ? `${options.resize.width}px` : "auto"
+        canvas.style.height = options.resize.height ? `${options.resize.height}px` : "auto"
+
+        // Center the canvas as well
+        canvas.style.display = "block"
+        canvas.style.margin = "0 auto"
+
+        // Handle zoom behavior
+        if (
+          options.resize.width > element.parentNode.clientWidth ||
+          options.resize.height > element.parentNode.clientHeight
+        ) {
+          canvas.style.maxWidth = "100%"
+          canvas.style.maxHeight = "100%"
+          canvas.style.objectFit = "contain"
+        } else {
+          canvas.style.maxWidth = "none"
+          canvas.style.maxHeight = "none"
+        }
+
+        forceReflow(canvas)
       }
-
-      forceReflow(canvas);
     }
   }
-}
 
   // Combine transforms and filters
-  let style = "";
+  let style = ""
   if (transforms.length > 0) {
-    style += `transform: ${transforms.join(" ")};`;
+    style += `transform: ${transforms.join(" ")};`
   }
   if (filters.length > 0) {
-    style += `filter: ${filters.join(" ")};`;
+    style += `filter: ${filters.join(" ")};`
   }
 
   // Apply combined style
-  element.setAttribute("style", element.getAttribute("style") + style);
+  element.setAttribute("style", element.getAttribute("style") + style)
 
-  return { transforms, filters };
-};
+  return { transforms, filters }
+}
 
 // Get filter CSS based on filter name
 export function getFilterStyle(filterId) {
   switch (filterId) {
     case "chrome":
-      return "contrast(1.1) saturate(1.1)";
+      return "contrast(1.1) saturate(1.1)"
     case "fade":
-      return "brightness(1.1) sepia(0.2) contrast(0.9)";
+      return "brightness(1.1) sepia(0.2) contrast(0.9)"
     case "cold":
-      return "saturate(0.8) hue-rotate(30deg)";
+      return "saturate(0.8) hue-rotate(30deg)"
     case "warm":
-      return "sepia(0.3) saturate(1.3)";
+      return "sepia(0.3) saturate(1.3)"
     case "pastel":
-      return "brightness(1.1) saturate(0.7)";
+      return "brightness(1.1) saturate(0.7)"
     case "mono":
-      return "grayscale(1)";
+      return "grayscale(1)"
     case "noir":
-      return "grayscale(1) contrast(1.2) brightness(0.9)";
+      return "grayscale(1) contrast(1.2) brightness(0.9)"
     case "stark":
-      return "contrast(1.5) brightness(0.9)";
+      return "contrast(1.5) brightness(0.9)"
     case "wash":
-      return "brightness(1.2) saturate(0.7) contrast(0.8)";
+      return "brightness(1.2) saturate(0.7) contrast(0.8)"
     default:
-      return "none";
+      return "none"
   }
 }
 
@@ -164,56 +155,50 @@ export function getFilterStyle(filterId) {
 function adjustFilterIntensity(filterStyle, intensity) {
   // Create a CSS filter parser would be complex, so we'll use a simplified approach
   // This would normally be done with a proper CSS parser
-  if (intensity === 100) return filterStyle;
+  if (intensity === 100) return filterStyle
 
   // For simplicity, we'll just blend the filter with "none" based on intensity
-  if (intensity === 0) return "none";
+  if (intensity === 0) return "none"
 
-  return filterStyle; // In a real app, you'd apply intensity properly
+  return filterStyle // In a real app, you'd apply intensity properly
 }
 
-export function calculateDimensions(
-  originalWidth,
-  originalHeight,
-  targetWidth,
-  targetHeight,
-  maintainAspectRatio
-) {
+export function calculateDimensions(originalWidth, originalHeight, targetWidth, targetHeight, maintainAspectRatio) {
   // If we don't have valid original dimensions, return the target dimensions
   if (!originalWidth || !originalHeight) {
     return {
       width: targetWidth || originalWidth || 0,
       height: targetHeight || originalHeight || 0,
-    };
+    }
   }
 
   if (!maintainAspectRatio) {
     return {
       width: targetWidth || originalWidth,
       height: targetHeight || originalHeight,
-    };
+    }
   }
 
-  const aspectRatio = originalWidth / originalHeight;
+  const aspectRatio = originalWidth / originalHeight
 
   if (targetWidth && !targetHeight) {
     return {
       width: targetWidth,
       height: Math.round(targetWidth / aspectRatio),
-    };
+    }
   } else if (!targetWidth && targetHeight) {
     return {
       width: Math.round(targetHeight * aspectRatio),
       height: targetHeight,
-    };
+    }
   } else if (targetWidth && targetHeight) {
     // When both dimensions are provided with maintainAspectRatio,
     // prioritize width and calculate height based on aspect ratio
     return {
       width: targetWidth,
       height: Math.round(targetWidth / aspectRatio),
-    };
+    }
   }
 
-  return { width: originalWidth, height: originalHeight };
+  return { width: originalWidth, height: originalHeight }
 }

@@ -12,9 +12,8 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
     return htmlContent.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ")
   }
 
+  // Initialize with the current text content
   const [text, setText] = useState(extractTextContent(annotation.content) || "")
-
-  console.log("text?>>>>>", text)
   const [fontSize, setFontSize] = useState(annotation.style?.fontSize || 24)
   const [fontFamily, setFontFamily] = useState(annotation.style?.fontFamily || "sans-serif")
   const [textAlign, setTextAlign] = useState(annotation.style?.textAlign || "left")
@@ -28,6 +27,7 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
   })
 
   const editorRef = useRef(null)
+  const textAreaRef = useRef(null)
 
   // Calculate position for the editor
   const editorStyle = {
@@ -50,12 +50,19 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
     }))
   }
 
-  // Update the text on the canvas in real-time as the user types
-  useEffect(() => {
+  // Handle text change
+  const handleTextChange = (e) => {
+    const newText = e.target.value
+    setText(newText)
+
     // Update the annotation with the current text as the user types
-    // This needs to work even when removing characters from default text
+    updateAnnotation(newText)
+  }
+
+  // Update annotation with current state
+  const updateAnnotation = (currentText) => {
     onUpdate(annotation.id, {
-      content: text, // Allow any text, including empty or shorter than original
+      content: currentText,
       style: {
         fontSize,
         fontFamily,
@@ -73,13 +80,16 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
         stage._konvaNode.batchDraw()
       }
     }, 10)
-  }, [text, fontSize, fontFamily, textAlign, color, backgroundColor, textFormatting, annotation.id, onUpdate])
+  }
 
-  // Update the handleApply function to ensure text content is properly formatted
+  // Apply changes and close editor
   const handleApply = () => {
-    // Use the text as is, even if it's empty
+    // Ensure we're using the current text value
+    const finalText = textAreaRef.current ? textAreaRef.current.value : text
+
+    // Apply the changes
     onUpdate(annotation.id, {
-      content: text,
+      content: finalText,
       style: {
         fontSize,
         fontFamily,
@@ -116,12 +126,11 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
     }
   }, [text, fontSize, fontFamily, textAlign, color, backgroundColor, textFormatting])
 
-  // Add a useEffect to focus the textarea when the editor opens
+  // Focus the textarea when the editor opens
   useEffect(() => {
-    const textArea = document.querySelector("textarea")
-    if (textArea) {
-      textArea.focus()
-      textArea.select()
+    if (textAreaRef.current) {
+      textAreaRef.current.focus()
+      textAreaRef.current.select()
     }
   }, [])
 
@@ -138,8 +147,9 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
 
       <div className="mb-3">
         <textarea
+          ref={textAreaRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleTextChange}
           className="w-full bg-gray-800 text-white p-2 rounded-md border border-gray-700 min-h-[60px] resize-none"
           autoFocus
           placeholder="Enter your text here"
@@ -155,7 +165,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
               min={8}
               max={72}
               step={1}
-              onValueChange={(values) => setFontSize(values[0])}
+              onValueChange={(values) => {
+                setFontSize(values[0])
+                updateAnnotation(text)
+              }}
               className="flex-1"
             />
             <span className="text-xs w-8 text-right">{fontSize}px</span>
@@ -166,7 +179,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <label className="text-xs text-gray-400 block mb-1">Font</label>
           <select
             value={fontFamily}
-            onChange={(e) => setFontFamily(e.target.value)}
+            onChange={(e) => {
+              setFontFamily(e.target.value)
+              updateAnnotation(text)
+            }}
             className="w-full bg-gray-800 text-white p-1 rounded-md border border-gray-700 text-xs"
           >
             <option value="sans-serif">Sans Serif</option>
@@ -183,7 +199,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
             <Input
               type="color"
               value={color}
-              onChange={(e) => setColor(e.target.value)}
+              onChange={(e) => {
+                setColor(e.target.value)
+                updateAnnotation(text)
+              }}
               className="w-8 h-8 p-1 rounded-l-md border-r-0"
             />
             <div className="flex-1 flex items-center justify-between bg-gray-800 rounded-r-md px-2 text-xs">
@@ -204,7 +223,9 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
                 const r = Number.parseInt(hex.slice(1, 3), 16)
                 const g = Number.parseInt(hex.slice(3, 5), 16)
                 const b = Number.parseInt(hex.slice(5, 7), 16)
-                setBackgroundColor(`rgba(${r}, ${g}, ${b}, 0.5)`)
+                const newBgColor = `rgba(${r}, ${g}, ${b}, 0.5)`
+                setBackgroundColor(newBgColor)
+                updateAnnotation(text)
               }}
               className="w-8 h-8 p-1 rounded-l-md border-r-0"
             />
@@ -220,7 +241,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textFormatting.bold ? "secondary" : "outline"}
             size="icon"
-            onClick={() => toggleTextFormatting("bold")}
+            onClick={() => {
+              toggleTextFormatting("bold")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <Bold className="h-4 w-4" />
@@ -228,7 +252,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textFormatting.italic ? "secondary" : "outline"}
             size="icon"
-            onClick={() => toggleTextFormatting("italic")}
+            onClick={() => {
+              toggleTextFormatting("italic")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <Italic className="h-4 w-4" />
@@ -236,7 +263,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textFormatting.underline ? "secondary" : "outline"}
             size="icon"
-            onClick={() => toggleTextFormatting("underline")}
+            onClick={() => {
+              toggleTextFormatting("underline")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <Underline className="h-4 w-4" />
@@ -244,7 +274,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textFormatting.strikethrough ? "secondary" : "outline"}
             size="icon"
-            onClick={() => toggleTextFormatting("strikethrough")}
+            onClick={() => {
+              toggleTextFormatting("strikethrough")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <StrikethroughIcon className="h-4 w-4" />
@@ -255,7 +288,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textAlign === "left" ? "secondary" : "outline"}
             size="icon"
-            onClick={() => setTextAlign("left")}
+            onClick={() => {
+              setTextAlign("left")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <AlignLeft className="h-4 w-4" />
@@ -263,7 +299,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textAlign === "center" ? "secondary" : "outline"}
             size="icon"
-            onClick={() => setTextAlign("center")}
+            onClick={() => {
+              setTextAlign("center")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <AlignCenter className="h-4 w-4" />
@@ -271,7 +310,10 @@ const InlineTextEditor = ({ annotation, position, onUpdate, onClose, stageSize }
           <Button
             variant={textAlign === "right" ? "secondary" : "outline"}
             size="icon"
-            onClick={() => setTextAlign("right")}
+            onClick={() => {
+              setTextAlign("right")
+              updateAnnotation(text)
+            }}
             className="h-8 w-8"
           >
             <AlignRight className="h-4 w-4" />

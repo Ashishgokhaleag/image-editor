@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_SUPERSET_API || "http://localhost:8088";
+const API_URL = process.env.REACT_APP_SUPERSET_API || "https://superset.dev.platform.ext.mobilityware.com";
 
 const supersetApi = axios.create({
   baseURL: API_URL,
@@ -22,8 +22,8 @@ export const getCSRFToken = async () => {
 
 export const login = async () => {
     const res = await axios.post(`${API_URL}/api/v1/security/login`, {
-      username: "Abhijeet",
-      password: "Password123",
+      username: "admin",
+      password: "admin",
       provider: "db",
       refresh: true,
     });

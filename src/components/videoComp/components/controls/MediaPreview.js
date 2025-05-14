@@ -500,26 +500,26 @@ const MediaPreview = ({
   }, [cropRegion])
 
   // Handle keyboard events for deletion
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Backspace" || e.key === "Delete") {
-        if (selectedStickerId !== null && onDeleteSticker) {
-          const stickerIndex = stickers.findIndex((s) => s.id === selectedStickerId)
-          if (stickerIndex !== -1) {
-            onDeleteSticker(stickerIndex)
-            setSelectedStickerId(null)
-          }
-        }
-        if (activeAnnotation !== null && onDeleteAnnotation) {
-          onDeleteAnnotation(activeAnnotation)
-          setActiveAnnotation(null)
-        }
-      }
-    }
+  // useEffect(() => {
+  //   const handleKeyDown = (e) => {
+  //     if (e.key === "Backspace" || e.key === "Delete") {
+  //       if (selectedStickerId !== null && onDeleteSticker) {
+  //         const stickerIndex = stickers.findIndex((s) => s.id === selectedStickerId)
+  //         if (stickerIndex !== -1) {
+  //           onDeleteSticker(stickerIndex)
+  //           setSelectedStickerId(null)
+  //         }
+  //       }
+  //       if (activeAnnotation !== null && onDeleteAnnotation) {
+  //         onDeleteAnnotation(activeAnnotation)
+  //         setActiveAnnotation(null)
+  //       }
+  //     }
+  //   }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedStickerId, activeAnnotation, onDeleteSticker, onDeleteAnnotation, stickers])
+  //   window.addEventListener("keydown", handleKeyDown)
+  //   return () => window.removeEventListener("keydown", handleKeyDown)
+  // }, [selectedStickerId, activeAnnotation, onDeleteSticker, onDeleteAnnotation, stickers])
 
   // Update transformer when active annotation changes
   useEffect(() => {
@@ -770,7 +770,7 @@ const MediaPreview = ({
             break
           }
         }
-      }
+      }        
       // For other shapes, check if the eraser is inside the shape
       else if (annotation.type === "rectangle" || annotation.type === "ellipse" || annotation.type === "text") {
         const absX = (annotation.position?.x / 100) * stageSize.width || 0

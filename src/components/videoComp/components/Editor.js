@@ -806,7 +806,6 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
   }
 
   const renderActiveToolControls = () => {
-    console.log("activeTool????", activeTool)
     switch (activeTool) {
       case "trim":
         return (

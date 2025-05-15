@@ -20,6 +20,7 @@ const ActivePanel = ({
   handleRotateLeft,
   handleFlipHorizontal,
   setCropMode,
+  handleSetCropMode,
   cropMode,
   handleApplyCrop,
   applyMask,
@@ -52,6 +53,10 @@ const ActivePanel = ({
     if (expandedPanel === "crop") {
       console.log("HELLO")
       setCropMode((prev)=>!prev);
+    }
+    else
+    {
+      setCropMode(false)
     }
   }, [expandedPanel, setCropMode]);
 
@@ -235,7 +240,8 @@ const ActivePanel = ({
 
             <button
               className="flex items-center justify-center gap-2 mx-2 px-4 py-1 rounded-md bg-editor-button text-white"
-              onClick={() => setCropMode(!cropMode)}
+              // onClick={() => setCropMode(!cropMode)}
+              onClick={() => handleSetCropMode()}
             >
               <Crop size={16} />
               {cropMode ? "Cancel Crop" : "Crop shape"}

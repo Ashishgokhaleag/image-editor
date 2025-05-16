@@ -9,6 +9,7 @@ import Druid from "./druid";
 import SupersetIframe from "./SupersetIframe";
 import ChartExplorer from "./PivotTableDemo/ChartViewer";
 import Navbar from "./Navbar";
+import PivotTable from "./components/PivotDruid/PivotTable";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/VideoScreen" element={<VideoScreen />} />
         <Route path="/iframe" element={<SupersetIframe />} />
         <Route path="/pivot" element={<ChartExplorer />} />
+        <Route path="/druidPivot" element={<PivotTable/>} />
       </Routes>
     </div>
   );

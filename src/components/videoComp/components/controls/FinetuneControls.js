@@ -11,7 +11,6 @@ const FinetuneControls = ({
   onResetAdjustments,
   onApplyFinetune,
 }) => {
-  console.log(adjustments, "adjustments in FinetuneControls");
 
   const handleAdjustmentChange = (adjustment, values) => {
     const updatedAdjustments = {
@@ -19,7 +18,6 @@ const FinetuneControls = ({
       [adjustment]: values[0],
     };
 
-    onAdjustmentChange(updatedAdjustments);
 
     if (mediaRef.current) {
       let filterString = "";
@@ -57,6 +55,7 @@ const FinetuneControls = ({
 
       mediaRef.current.style.filter = filterString.trim() || "none";
     }
+    onAdjustmentChange(updatedAdjustments);
   };
 
   return (
@@ -77,7 +76,7 @@ const FinetuneControls = ({
       <Tabs defaultValue="basic" className="w-full">
         <TabsList className="grid grid-cols-2">
           <TabsTrigger value="basic">Basic</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          {/* <TabsTrigger value="advanced">Advanced</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 pt-3">

@@ -82,7 +82,7 @@ const FilterControls = ({
         </div>
       </div>
 
-      <div className="space-y-3">
+      {/* <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium text-white">Filter Intensity</h4>
           <span className="text-xs text-gray-400">{localFilterOptions.intensity}%</span>
@@ -96,7 +96,7 @@ const FilterControls = ({
           className="range-input"
           disabled={!localFilterOptions.name || localFilterOptions.name === "default"}
         />
-      </div>
+      </div> */}
       
       <div className="grid grid-cols-5 gap-2 overflow-x-auto py-2">
         {filters.map(filter => (

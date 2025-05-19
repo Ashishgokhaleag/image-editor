@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useRef } from "react"
 import { Stage, Layer, Text, Rect, Circle, Line, Arrow, Transformer, Image as KonvaImage, Group } from "react-konva"
 import { MARKER_OPTIONS } from "../../../../lib/constants"
@@ -770,7 +772,7 @@ const MediaPreview = ({
             break
           }
         }
-      }        
+      }
       // For other shapes, check if the eraser is inside the shape
       else if (annotation.type === "rectangle" || annotation.type === "ellipse" || annotation.type === "text") {
         const absX = (annotation.position?.x / 100) * stageSize.width || 0
@@ -875,9 +877,13 @@ const MediaPreview = ({
     const pointerPos = stage.getPointerPosition()
     if (!pointerPos) return
 
+    // Store points as percentages of stage size for consistent scaling
+    const pointX = (pointerPos.x / stageSize.width) * 100
+    const pointY = (pointerPos.y / stageSize.height) * 100
+
     // Start drawing
     setIsDrawing(true)
-    setDrawingPoints([pointerPos.x, pointerPos.y])
+    setDrawingPoints([pointX, pointY])
     setCurrentDrawingTool(selectedTool)
   }
 
@@ -898,8 +904,12 @@ const MediaPreview = ({
     const pointerPos = stage.getPointerPosition()
     if (!pointerPos) return
 
+    // Store points as percentages of stage size for consistent scaling
+    const pointX = (pointerPos.x / stageSize.width) * 100
+    const pointY = (pointerPos.y / stageSize.height) * 100
+
     // Add point to drawing
-    setDrawingPoints([...drawingPoints, pointerPos.x, pointerPos.y])
+    setDrawingPoints([...drawingPoints, pointX, pointY])
   }
 
   // Handle stage mouse up for drawing
@@ -1049,7 +1059,10 @@ const MediaPreview = ({
           {/* Current drawing line */}
           {isDrawing && drawingPoints.length >= 4 && (
             <Line
-              points={drawingPoints}
+              points={drawingPoints.map((point, index) => {
+                // Convert percentage points back to actual coordinates for display
+                return index % 2 === 0 ? (point / 100) * stageSize.width : (point / 100) * stageSize.height
+              })}
               stroke="#FFFFFF"
               strokeWidth={2}
               tension={0.5}
@@ -1187,10 +1200,22 @@ const MediaPreview = ({
                 return (
                   <Line
                     {...commonProps}
-                    x={x}
-                    y={y}
-                    points={annotation.points || [0, 0, 100, 100]}
-                    tension={annotation.type === "freehand" ? 0.5 : 0}
+                    x={0}
+                    y={0}
+                    points={
+                      annotation.points
+                        ? annotation.points.map((point, index) => {
+                            // Convert points to percentages of stage size
+                            // Even indices are X coordinates, odd indices are Y coordinates
+                            const value = point
+                            const isX = index % 2 === 0
+
+                            // Scale the point based on the current stage dimensions
+                            return isX ? (value / 100) * stageSize.width + x : (value / 100) * stageSize.height + y
+                          })
+                        : [0, 0, 100, 100]
+                    }
+                    tension={0.5}
                     lineCap="round"
                     lineJoin="round"
                   />

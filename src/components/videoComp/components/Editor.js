@@ -21,47 +21,47 @@ let ffmpeg = null;
 let isFFmpegLoaded = false;
 
 const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
-  const [activeTool, setActiveTool] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [zoom, setZoom] = useState(100);
-  const [showTimeline, setShowTimeline] = useState(mediaType === "video");
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [mediaHistory, setMediaHistory] = useState([{}]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [stickers, setStickers] = useState([]);
-  const [annotations, setAnnotations] = useState([]);
-  const [trimmedVideoUrl, setTrimmedVideoUrl] = useState(null);
-  const [cropping, setCropping] = useState(false);
-  const [showCropSelector, setShowCropSelector] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [isExporting, setIsExporting] = useState(false);
+  const [activeTool, setActiveTool] = useState(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [zoom, setZoom] = useState(100)
+  const [showTimeline, setShowTimeline] = useState(mediaType === "video")
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [mediaHistory, setMediaHistory] = useState([{}])
+  const [historyIndex, setHistoryIndex] = useState(0)
+  const [stickers, setStickers] = useState([])
+  const [annotations, setAnnotations] = useState([])
+  const [trimmedVideoUrl, setTrimmedVideoUrl] = useState(null)
+  const [cropping, setCropping] = useState(false)
+  const [showCropSelector, setShowCropSelector] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [isExporting, setIsExporting] = useState(false)
 
   const [cropOptions, setCropOptions] = useState({
     aspectRatio: null,
     rotation: 0,
     flip: { horizontal: false, vertical: false },
-  });
+  })
   const [cropRegion, setCropRegion] = useState({
     x: 20,
     y: 20,
     width: 60,
     height: 60,
-  });
+  })
 
-  const [croppedVideoUrl, setCroppedVideoUrl] = useState(null);
+  const [croppedVideoUrl, setCroppedVideoUrl] = useState(null)
 
   const [filterOptions, setFilterOptions] = useState({
     name: null,
     intensity: 100,
-  });
+  })
 
   const [resizeOptions, setResizeOptions] = useState({
     width: 0,
     height: 0,
     maintainAspectRatio: true,
-  });
+  })
 
   // Track the actual dimensions of the media element
   const [mediaDimensions, setMediaDimensions] = useState({
@@ -69,14 +69,14 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
     height: 0,
     naturalWidth: 0,
     naturalHeight: 0,
-  });
+  })
 
   const [finetuneOptions, setFinetuneOptions] = useState({
     brightness: 100,
     contrast: 100,
     saturation: 100,
     exposure: 100,
-  });
+  })
 
   // Add a state for finetune adjustments that will persist across tab changes
   const [adjustments, setAdjustments] = useState({
@@ -88,319 +88,305 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
     gamma: 0,
     clarity: 0,
     vignette: 0,
-  });
+  })
 
-  const [selectedAnnotation, setSelectedAnnotation] = useState(null);
-  const [editingAnnotationId, setEditingAnnotationId] = useState(null);
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null)
+  const [editingAnnotationId, setEditingAnnotationId] = useState(null)
 
-  const mediaRef = useRef(null);
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const progressRef = useRef(null);
-  const mediaContainerRef = useRef(null);
-  const stageRef = useRef(null);
-  const exportCanvasRef = useRef(null);
+  const mediaRef = useRef(null)
+  const containerRef = useRef(null)
+  const canvasRef = useRef(null)
+  const progressRef = useRef(null)
+  const mediaContainerRef = useRef(null)
+  const stageRef = useRef(null)
+  const exportCanvasRef = useRef(null)
 
   // Improved FFmpeg loader with better error handling
   const loadFFmpeg = async () => {
     try {
       if (!ffmpeg) {
-        console.log("Starting FFmpeg initialization...");
+        console.log("Starting FFmpeg initialization...")
 
         // Check if FFmpeg is already loaded in the window
         if (!window.FFmpeg) {
-          console.log("Loading FFmpeg script...");
+          console.log("Loading FFmpeg script...")
           await new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src =
-              "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js";
-            script.onload = resolve;
-            script.onerror = () =>
-              reject(new Error("Failed to load FFmpeg script"));
-            document.head.appendChild(script);
-          });
-          console.log("FFmpeg script loaded successfully");
+            const script = document.createElement("script")
+            script.src = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"
+            script.onload = resolve
+            script.onerror = () => reject(new Error("Failed to load FFmpeg script"))
+            document.head.appendChild(script)
+          })
+          console.log("FFmpeg script loaded successfully")
         }
 
         // Create FFmpeg instance with proper configuration
-        console.log("Creating FFmpeg instance...");
+        console.log("Creating FFmpeg instance...")
         ffmpeg = window.FFmpeg.createFFmpeg({
           log: true,
-          corePath:
-            "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js",
-        });
+          corePath: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js",
+        })
 
         // Load FFmpeg
-        console.log("Loading FFmpeg core...");
-        await ffmpeg.load();
-        isFFmpegLoaded = true;
-        console.log("FFmpeg loaded successfully");
+        console.log("Loading FFmpeg core...")
+        await ffmpeg.load()
+        isFFmpegLoaded = true
+        console.log("FFmpeg loaded successfully")
       }
-      return ffmpeg;
+      return ffmpeg
     } catch (error) {
-      console.error("FFmpeg loading error:", error);
-      throw new Error(`Failed to load FFmpeg: ${error.message}`);
+      console.error("FFmpeg loading error:", error)
+      throw new Error(`Failed to load FFmpeg: ${error.message}`)
     }
-  };
+  }
 
   const handleToolChange = (tool) => {
     if (activeTool === tool) {
-      setActiveTool(null);
+      setActiveTool(null)
     } else {
-      setActiveTool(tool);
+      setActiveTool(tool)
 
       // When switching to crop or sticker, ensure we have the latest media dimensions
       if (tool === "crop" || tool === "sticker") {
-        updateMediaDimensions();
+        updateMediaDimensions()
       }
     }
-  };
+  }
 
   // Function to update media dimensions
   const updateMediaDimensions = () => {
     if (mediaRef.current) {
-      const element = mediaRef.current;
-      const rect = element.getBoundingClientRect();
+      const element = mediaRef.current
+      const rect = element.getBoundingClientRect()
 
       // For video elements, use videoWidth/videoHeight
       // For images, use naturalWidth/naturalHeight
-      const naturalWidth =
-        mediaType === "video" ? element.videoWidth : element.naturalWidth;
-      const naturalHeight =
-        mediaType === "video" ? element.videoHeight : element.naturalHeight;
+      const naturalWidth = mediaType === "video" ? element.videoWidth : element.naturalWidth
+      const naturalHeight = mediaType === "video" ? element.videoHeight : element.naturalHeight
 
       setMediaDimensions({
         width: rect.width,
         height: rect.height,
         naturalWidth: naturalWidth || rect.width,
         naturalHeight: naturalHeight || rect.height,
-      });
+      })
     }
-  };
+  }
 
   // Function to capture the current canvas state with all annotations and stickers
   const captureCanvas = async () => {
-    if (!stageRef.current) return null;
+    if (!stageRef.current) return null
 
     try {
       // Get the stage as a data URL
       return stageRef.current.toDataURL({
         pixelRatio: 2, // Higher quality
         mimeType: "image/png",
-      });
+      })
     } catch (error) {
-      console.error("Error capturing canvas:", error);
-      return null;
+      console.error("Error capturing canvas:", error)
+      return null
     }
-  };
+  }
 
   // Completely revised export function
   const handleExport = async () => {
     try {
-      setIsExporting(true);
-      setExportProgress(0);
+      setIsExporting(true)
+      setExportProgress(0)
 
       // Step 1: Load FFmpeg
-      console.log("Starting export process...");
-      const ffmpegInstance = await loadFFmpeg();
+      console.log("Starting export process...")
+      const ffmpegInstance = await loadFFmpeg()
       if (!isFFmpegLoaded) {
-        throw new Error("FFmpeg is not loaded properly");
+        throw new Error("FFmpeg is not loaded properly")
       }
-      setExportProgress(10);
+      setExportProgress(10)
 
       // Step 2: Get the current video source
-      const sourceUrl = croppedVideoUrl || trimmedVideoUrl || mediaUrl;
+      const sourceUrl = croppedVideoUrl || trimmedVideoUrl || mediaUrl
       if (!sourceUrl) {
-        throw new Error("No video available to export");
+        throw new Error("No video available to export")
       }
 
       // Step 3: Fetch the video data
-      console.log("Fetching video data...");
-      const response = await fetch(sourceUrl);
+      console.log("Fetching video data...")
+      const response = await fetch(sourceUrl)
       if (!response.ok) {
-        throw new Error(`Failed to fetch video: ${response.statusText}`);
+        throw new Error(`Failed to fetch video: ${response.statusText}`)
       }
 
-      const videoData = await response.arrayBuffer();
+      const videoData = await response.arrayBuffer()
       if (videoData.byteLength === 0) {
-        throw new Error("Video data is empty");
+        throw new Error("Video data is empty")
       }
-      console.log(`Video data size: ${videoData.byteLength} bytes`);
-      setExportProgress(30);
+      console.log(`Video data size: ${videoData.byteLength} bytes`)
+      setExportProgress(30)
 
       // Step 4: Prepare file names
-      const inputFile = "input.mp4";
-      const outputFile = "exported.mp4";
-      const overlayFile = "overlay.png";
+      const inputFile = "input.mp4"
+      const outputFile = "exported.mp4"
+      const overlayFile = "overlay.png"
 
       // Step 5: Clean up previous files
       try {
-        ffmpegInstance.FS("unlink", inputFile);
+        ffmpegInstance.FS("unlink", inputFile)
       } catch {}
       try {
-        ffmpegInstance.FS("unlink", outputFile);
+        ffmpegInstance.FS("unlink", outputFile)
       } catch {}
       try {
-        ffmpegInstance.FS("unlink", overlayFile);
+        ffmpegInstance.FS("unlink", overlayFile)
       } catch {}
 
       // Step 6: Write input video to FFmpeg filesystem
-      console.log("Writing video to FFmpeg filesystem...");
-      ffmpegInstance.FS("writeFile", inputFile, new Uint8Array(videoData));
-      setExportProgress(40);
+      console.log("Writing video to FFmpeg filesystem...")
+      ffmpegInstance.FS("writeFile", inputFile, new Uint8Array(videoData))
+      setExportProgress(40)
 
       // Step 7: Capture canvas with annotations and stickers if they exist
-      let hasOverlay = false;
+      let hasOverlay = false
       if (annotations.length > 0 || stickers.length > 0) {
-        console.log("Capturing annotations and stickers...");
-        const canvasDataURL = await captureCanvas();
+        console.log("Capturing annotations and stickers...")
+        const canvasDataURL = await captureCanvas()
 
         if (canvasDataURL) {
           // Convert data URL to binary
-          const base64Data = canvasDataURL.split(",")[1];
-          const binaryData = atob(base64Data);
-          const overlayData = new Uint8Array(binaryData.length);
+          const base64Data = canvasDataURL.split(",")[1]
+          const binaryData = atob(base64Data)
+          const overlayData = new Uint8Array(binaryData.length)
           for (let i = 0; i < binaryData.length; i++) {
-            overlayData[i] = binaryData.charCodeAt(i);
+            overlayData[i] = binaryData.charCodeAt(i)
           }
 
           // Write overlay to FFmpeg filesystem
-          ffmpegInstance.FS("writeFile", overlayFile, overlayData);
-          hasOverlay = true;
+          ffmpegInstance.FS("writeFile", overlayFile, overlayData)
+          hasOverlay = true
         }
       }
-      setExportProgress(50);
+      setExportProgress(50)
 
       // Step 8: Build FFmpeg command
-      console.log("Building FFmpeg command...");
-      let ffmpegCommand = [];
+      console.log("Building FFmpeg command...")
+      let ffmpegCommand = []
 
       // Input file
-      ffmpegCommand.push("-i", inputFile);
+      ffmpegCommand.push("-i", inputFile)
 
       // Add overlay if we have one
       if (hasOverlay) {
-        ffmpegCommand.push("-i", overlayFile);
+        ffmpegCommand.push("-i", overlayFile)
       }
 
       // Build filter chain for adjustments
-      const filterChain = [];
+      const filterChain = []
 
       // Add crop filter if needed
       if (cropRegion && croppedVideoUrl) {
-        const video = mediaRef.current;
+        const video = mediaRef.current
         if (video) {
-          const w = video.videoWidth;
-          const h = video.videoHeight;
-          const x = Math.round((cropRegion.x / 100) * w);
-          const y = Math.round((cropRegion.y / 100) * h);
-          const width = Math.round((cropRegion.width / 100) * w);
-          const height = Math.round((cropRegion.height / 100) * h);
+          const w = video.videoWidth
+          const h = video.videoHeight
+          const x = Math.round((cropRegion.x / 100) * w)
+          const y = Math.round((cropRegion.y / 100) * h)
+          const width = Math.round((cropRegion.width / 100) * w)
+          const height = Math.round((cropRegion.height / 100) * h)
 
           if (width > 0 && height > 0) {
-            filterChain.push(`crop=${width}:${height}:${x}:${y}`);
+            filterChain.push(`crop=${width}:${height}:${x}:${y}`)
           }
         }
       }
 
       // Add adjustment filters
-      const f = adjustments;
-      console.log(f, "F inside export");
-    
+      const f = adjustments
+      console.log(f, "F inside export")
+
       if (f.brightness !== 0 || f.exposure !== 0) {
-        const brightnessVal = (f.brightness + f.exposure) / 200; // same scale as canvas
-        filterChain.push(`eq=brightness=${brightnessVal}`);
+        const brightnessVal = (f.brightness + f.exposure) / 200 // same scale as canvas
+        filterChain.push(`eq=brightness=${brightnessVal}`)
       }
-      
+
       if (f.contrast !== 0) {
-        const contrastVal = 1 + f.contrast / 100;
-        filterChain.push(`eq=contrast=${contrastVal}`);
+        const contrastVal = 1 + f.contrast / 100
+        filterChain.push(`eq=contrast=${contrastVal}`)
       }
-      
+
       if (f.saturation !== 0) {
-        const saturationVal = 1 + f.saturation / 100;
-        filterChain.push(`eq=saturation=${saturationVal}`);
+        const saturationVal = 1 + f.saturation / 100
+        filterChain.push(`eq=saturation=${saturationVal}`)
       }
       if (f.gamma !== 0) {
-        const gammaVal = 1 + f.gamma / 100;
-        filterChain.push(`eq=gamma=${gammaVal}`);
+        const gammaVal = 1 + f.gamma / 100
+        filterChain.push(`eq=gamma=${gammaVal}`)
       }
 
       // Add preset filter if selected
       if (filterOptions.name) {
-        console.log(filterOptions.name, "filteroptionsName export");
+        console.log(filterOptions.name, "filteroptionsName export")
         switch (filterOptions.name) {
           case "chrome":
-            filterChain.push("eq=contrast=1.1:saturation=1.3");
-            break;
+            filterChain.push("eq=contrast=1.1:saturation=1.3")
+            break
           case "fade":
             // -15% contrast, -20% saturation, +5% brightness
-            filterChain.push("eq=contrast=0.85:saturation=0.8:brightness=0.05");
-            break;
+            filterChain.push("eq=contrast=0.85:saturation=0.8:brightness=0.05")
+            break
 
           case "cold":
             // +10% saturation, +10% contrast
-            filterChain.push("eq=saturation=1.1:contrast=1.1");
-            break;
+            filterChain.push("eq=saturation=1.1:contrast=1.1")
+            break
 
           case "warm":
             // +20% saturation, +5% brightness
-            filterChain.push("eq=saturation=1.2:brightness=0.05");
-            break;
+            filterChain.push("eq=saturation=1.2:brightness=0.05")
+            break
 
           case "pastel":
             // -30% saturation, +10% brightness
-            filterChain.push("eq=saturation=0.7:brightness=0.1");
-            break;
+            filterChain.push("eq=saturation=0.7:brightness=0.1")
+            break
           case "mono":
-            filterChain.push(
-              "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3"
-            );
-            break;
+            filterChain.push("colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3")
+            break
           case "noir":
             filterChain.push(
               "hue=s=0", // Full grayscale
-              "eq=contrast=1.3" // Increase contrast by 30%
-            );
-            break;
+              "eq=contrast=1.3", // Increase contrast by 30%
+            )
+            break
           case "stark":
-            filterChain.push("eq=contrast=1.5:saturation=0.8");
-            break;
+            filterChain.push("eq=contrast=1.5:saturation=0.8")
+            break
           case "wash":
-            filterChain.push("eq=saturation=0.8:brightness=0.2");
-            break;
-            default:
-              return
+            filterChain.push("eq=saturation=0.8:brightness=0.2")
+            break
+          default:
+            return
         }
       }
 
       // Add filter arguments to command
       if (filterChain.length > 0 && hasOverlay) {
         // Complex filter for both adjustments and overlay
-        const complexFilter = `[0:v]${filterChain.join(
-          ","
-        )}[filtered];[filtered][1:v]overlay=0:0[v]`;
-        ffmpegCommand.push("-filter_complex", complexFilter, "-map", "[v]");
+        const complexFilter = `[0:v]${filterChain.join(",")}[filtered];[filtered][1:v]overlay=0:0[v]`
+        ffmpegCommand.push("-filter_complex", complexFilter, "-map", "[v]")
 
         // If we have audio, map it too
         if (mediaType === "video") {
-          ffmpegCommand.push("-map", "0:a?");
+          ffmpegCommand.push("-map", "0:a?")
         }
       } else if (filterChain.length > 0) {
         // Just adjustments, no overlay
-        ffmpegCommand.push("-vf", filterChain.join(","));
+        ffmpegCommand.push("-vf", filterChain.join(","))
       } else if (hasOverlay) {
         // Just overlay, no adjustments
-        ffmpegCommand.push(
-          "-filter_complex",
-          "[0:v][1:v]overlay=0:0[v]",
-          "-map",
-          "[v]"
-        );
+        ffmpegCommand.push("-filter_complex", "[0:v][1:v]overlay=0:0[v]", "-map", "[v]")
 
         // If we have audio, map it too
         if (mediaType === "video") {
-          ffmpegCommand.push("-map", "0:a?");
+          ffmpegCommand.push("-map", "0:a?")
         }
       }
 
@@ -418,56 +404,54 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
         "-b:a",
         "128k",
         outputFile,
-      ];
+      ]
 
-      console.log("FFmpeg command:", ffmpegCommand);
-      setExportProgress(60);
+      console.log("FFmpeg command:", ffmpegCommand)
+      setExportProgress(60)
 
       // Step 9: Run FFmpeg
-      console.log("Running FFmpeg...");
-      await ffmpegInstance.run(...ffmpegCommand);
-      setExportProgress(80);
+      console.log("Running FFmpeg...")
+      await ffmpegInstance.run(...ffmpegCommand)
+      setExportProgress(80)
 
       // Step 10: Read the output file
-      console.log("Reading output file...");
-      const data = ffmpegInstance.FS("readFile", outputFile);
+      console.log("Reading output file...")
+      const data = ffmpegInstance.FS("readFile", outputFile)
       if (data.length === 0) {
-        throw new Error("Generated video is empty");
+        throw new Error("Generated video is empty")
       }
-      console.log(`Output video size: ${data.length} bytes`);
-      setExportProgress(90);
+      console.log(`Output video size: ${data.length} bytes`)
+      setExportProgress(90)
 
       // Step 11: Create download URL and trigger download
-      console.log("Creating download URL...");
-      const url = URL.createObjectURL(
-        new Blob([data.buffer], { type: "video/mp4" })
-      );
+      console.log("Creating download URL...")
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
 
       // Trigger download
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = mediaName ? `edited_${mediaName}` : "edited_video.mp4";
-      a.click();
+      const a = document.createElement("a")
+      a.href = url
+      a.download = mediaName ? `edited_${mediaName}` : "edited_video.mp4"
+      a.click()
 
       // Clean up
       setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 100);
+        URL.revokeObjectURL(url)
+      }, 100)
 
-      console.log("Export completed successfully");
-      setExportProgress(100);
+      console.log("Export completed successfully")
+      setExportProgress(100)
     } catch (err) {
-      console.error("Export error:", err);
-      alert(`Export failed: ${err.message}`);
+      console.error("Export error:", err)
+      alert(`Export failed: ${err.message}`)
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
 
   // Alternative export method using HTML5 Canvas for simpler cases
   const handleSimpleExport = async () => {
     try {
-      setIsExporting(true);
+      setIsExporting(true)
 
       if (mediaType !== "video") {
         // For images, we can use a simpler approach
@@ -475,150 +459,150 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
           const dataURL = stageRef.current.toDataURL({
             pixelRatio: 2,
             mimeType: "image/png",
-          });
+          })
 
-          const a = document.createElement("a");
-          a.href = dataURL;
-          a.download = mediaName ? `edited_${mediaName}` : "edited_image.png";
-          a.click();
+          const a = document.createElement("a")
+          a.href = dataURL
+          a.download = mediaName ? `edited_${mediaName}` : "edited_image.png"
+          a.click()
         }
-        setIsExporting(false);
-        return;
+        setIsExporting(false)
+        return
       }
 
       // For videos, we need to use FFmpeg
       // This is a fallback method if the main export fails
-      const video = mediaRef.current;
+      const video = mediaRef.current
       if (!video) {
-        throw new Error("Video element not found");
+        throw new Error("Video element not found")
       }
 
       // Create a temporary canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
+      const canvas = document.createElement("canvas")
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext("2d")
 
       // Pause the video
-      const wasPlaying = !video.paused;
-      if (wasPlaying) video.pause();
+      const wasPlaying = !video.paused
+      if (wasPlaying) video.pause()
 
       // Draw the current frame
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
       // Create a download link for the current frame
-      const dataURL = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataURL;
-      a.download = mediaName ? `frame_${mediaName}.png` : "video_frame.png";
-      a.click();
+      const dataURL = canvas.toDataURL("image/png")
+      const a = document.createElement("a")
+      a.href = dataURL
+      a.download = mediaName ? `frame_${mediaName}.png` : "video_frame.png"
+      a.click()
 
       // Resume playback if it was playing
-      if (wasPlaying) video.play();
+      if (wasPlaying) video.play()
     } catch (err) {
-      console.error("Simple export error:", err);
-      alert(`Simple export failed: ${err.message}`);
+      console.error("Simple export error:", err)
+      alert(`Simple export failed: ${err.message}`)
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
 
   const togglePlay = () => {
     if (mediaType === "video" && mediaRef.current) {
-      const videoElement = mediaRef.current;
+      const videoElement = mediaRef.current
       if (isPlaying) {
-        videoElement.pause();
+        videoElement.pause()
       } else {
-        videoElement.play();
+        videoElement.play()
       }
-      setIsPlaying(!isPlaying);
+      setIsPlaying(!isPlaying)
     }
-  };
+  }
 
   const toggleMute = () => {
     if (mediaType === "video" && mediaRef.current) {
-      const videoElement = mediaRef.current;
-      videoElement.muted = !videoElement.muted;
-      setIsMuted(!isMuted);
+      const videoElement = mediaRef.current
+      videoElement.muted = !videoElement.muted
+      setIsMuted(!isMuted)
     }
-  };
+  }
 
   const handleZoomChange = (value) => {
-    setZoom(value);
+    setZoom(value)
     // Update dimensions after zoom changes
-    setTimeout(updateMediaDimensions, 100);
-  };
+    setTimeout(updateMediaDimensions, 100)
+  }
 
   const handleUndo = () => {
     if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      applyHistoryState(newIndex);
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      applyHistoryState(newIndex)
     }
-  };
+  }
 
   const handleRedo = () => {
     if (historyIndex < mediaHistory.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      applyHistoryState(newIndex);
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      applyHistoryState(newIndex)
     }
-  };
+  }
 
   const applyHistoryState = (index) => {
     if (mediaRef.current && mediaHistory[index]) {
-      const state = mediaHistory[index];
-      applyTransformation(mediaRef.current, state);
+      const state = mediaHistory[index]
+      applyTransformation(mediaRef.current, state)
 
       // Update dimensions after applying history state
-      setTimeout(updateMediaDimensions, 100);
+      setTimeout(updateMediaDimensions, 100)
     }
-  };
+  }
 
   const addToHistory = (changes) => {
-    const newHistory = mediaHistory.slice(0, historyIndex + 1);
-    const currentState = newHistory[newHistory.length - 1];
-    const newState = { ...currentState, ...changes };
-    setMediaHistory([...newHistory, newState]);
-    setHistoryIndex(newHistory.length);
+    const newHistory = mediaHistory.slice(0, historyIndex + 1)
+    const currentState = newHistory[newHistory.length - 1]
+    const newState = { ...currentState, ...changes }
+    setMediaHistory([...newHistory, newState])
+    setHistoryIndex(newHistory.length)
     if (mediaRef.current) {
-      applyTransformation(mediaRef.current, newState);
+      applyTransformation(mediaRef.current, newState)
 
       // Update dimensions after applying transformation
-      setTimeout(updateMediaDimensions, 100);
+      setTimeout(updateMediaDimensions, 100)
     }
-  };
+  }
 
   const handleCropChange = (options) => {
-    setCropOptions(options);
-  };
+    setCropOptions(options)
+  }
 
   const handleCropRegionChange = (region) => {
-    setCropRegion(region);
-  };
+    setCropRegion(region)
+  }
 
   // Pass a handler to CropControls to show the crop selector
   const handleShowCropSelector = () => {
-    updateMediaDimensions();
-    setShowCropSelector(true);
-  };
+    updateMediaDimensions()
+    setShowCropSelector(true)
+  }
 
   // Improved crop video function
   const handleApplyCropRegion = async () => {
-    if (mediaType !== "video" || !mediaRef.current) return;
-    setCropping(true);
+    if (mediaType !== "video" || !mediaRef.current) return
+    setCropping(true)
     try {
-      const ffmpegInstance = await loadFFmpeg();
+      const ffmpegInstance = await loadFFmpeg()
       if (!isFFmpegLoaded) {
-        alert("FFmpeg is still loading, please wait.");
-        setCropping(false);
-        return;
+        alert("FFmpeg is still loading, please wait.")
+        setCropping(false)
+        return
       }
 
       // Get video dimensions
-      const video = mediaRef.current;
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
+      const video = mediaRef.current
+      const videoWidth = video.videoWidth
+      const videoHeight = video.videoHeight
 
       // Ensure crop region is within video bounds
       const safeRegion = {
@@ -626,31 +610,31 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
         y: Math.max(0, Math.min(100, cropRegion.y)),
         width: Math.max(10, Math.min(100 - cropRegion.x, cropRegion.width)),
         height: Math.max(10, Math.min(100 - cropRegion.y, cropRegion.height)),
-      };
+      }
 
       // Convert cropRegion (percent) to pixels
-      const x = Math.round((safeRegion.x / 100) * videoWidth);
-      const y = Math.round((safeRegion.y / 100) * videoHeight);
-      const width = Math.round((safeRegion.width / 100) * videoWidth);
-      const height = Math.round((safeRegion.height / 100) * videoHeight);
+      const x = Math.round((safeRegion.x / 100) * videoWidth)
+      const y = Math.round((safeRegion.y / 100) * videoHeight)
+      const width = Math.round((safeRegion.width / 100) * videoWidth)
+      const height = Math.round((safeRegion.height / 100) * videoHeight)
 
       // Download video data
-      const response = await fetch(trimmedVideoUrl || mediaUrl);
-      const videoData = await response.arrayBuffer();
-      const videoFileName = "input.mp4";
+      const response = await fetch(trimmedVideoUrl || mediaUrl)
+      const videoData = await response.arrayBuffer()
+      const videoFileName = "input.mp4"
 
       // Remove previous files if they exist
       try {
-        ffmpegInstance.FS("unlink", videoFileName);
+        ffmpegInstance.FS("unlink", videoFileName)
       } catch {}
       try {
-        ffmpegInstance.FS("unlink", "cropped.mp4");
+        ffmpegInstance.FS("unlink", "cropped.mp4")
       } catch {}
 
-      ffmpegInstance.FS("writeFile", videoFileName, new Uint8Array(videoData));
+      ffmpegInstance.FS("writeFile", videoFileName, new Uint8Array(videoData))
 
       // Crop using ffmpeg with better parameters
-      const cropFilter = `crop=${width}:${height}:${x}:${y}`;
+      const cropFilter = `crop=${width}:${height}:${x}:${y}`
       await ffmpegInstance.run(
         "-i",
         videoFileName,
@@ -666,43 +650,41 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
         "aac",
         "-b:a",
         "128k",
-        "cropped.mp4"
-      );
+        "cropped.mp4",
+      )
 
-      const data = ffmpegInstance.FS("readFile", "cropped.mp4");
+      const data = ffmpegInstance.FS("readFile", "cropped.mp4")
       if (data.length === 0) {
-        throw new Error("Cropped video is empty");
+        throw new Error("Cropped video is empty")
       }
 
-      const url = URL.createObjectURL(
-        new Blob([data.buffer], { type: "video/mp4" })
-      );
-      setCroppedVideoUrl(url);
-      setShowCropSelector(false);
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
+      setCroppedVideoUrl(url)
+      setShowCropSelector(false)
 
       // Update dimensions after cropping
-      setTimeout(updateMediaDimensions, 100);
+      setTimeout(updateMediaDimensions, 100)
     } catch (err) {
-      console.error("Cropping error:", err);
-      alert("Cropping failed: " + err.message);
+      console.error("Cropping error:", err)
+      alert("Cropping failed: " + err.message)
     }
-    setCropping(false);
-  };
+    setCropping(false)
+  }
 
   const applyCrop = () => {
-    addToHistory({ crop: cropOptions });
+    addToHistory({ crop: cropOptions })
 
     // Update dimensions after applying crop
-    setTimeout(updateMediaDimensions, 100);
-  };
+    setTimeout(updateMediaDimensions, 100)
+  }
 
   const handleFilterChange = (options) => {
-    setFilterOptions(options);
+    setFilterOptions(options)
     if (mediaRef.current) {
       // Apply the filter directly to the media element
-      let filterStyle = "";
+      let filterStyle = ""
       if (options.name) {
-        filterStyle = getFilterStyle(options.name);
+        filterStyle = getFilterStyle(options.name)
         // Apply intensity if needed
         if (options.intensity !== 100) {
           // For now, we'll just use the filter as is
@@ -711,110 +693,99 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
       }
 
       // Preserve any existing finetune adjustments
-      let adjustmentString = "";
+      let adjustmentString = ""
       if (adjustments.brightness !== 0) {
-        adjustmentString += `brightness(${1 + adjustments.brightness / 100}) `;
+        adjustmentString += `brightness(${1 + adjustments.brightness / 100}) `
       }
       if (adjustments.contrast !== 0) {
-        adjustmentString += `contrast(${1 + adjustments.contrast / 100}) `;
+        adjustmentString += `contrast(${1 + adjustments.contrast / 100}) `
       }
       if (adjustments.saturation !== 0) {
-        adjustmentString += `saturate(${1 + adjustments.saturation / 100}) `;
+        adjustmentString += `saturate(${1 + adjustments.saturation / 100}) `
       }
       if (adjustments.exposure !== 0) {
-        adjustmentString += `brightness(${1 + adjustments.exposure / 100}) `;
+        adjustmentString += `brightness(${1 + adjustments.exposure / 100}) `
       }
       if (adjustments.gamma !== 0) {
-        adjustmentString += `contrast(${
-          1 + adjustments.gamma / 200
-        }) saturate(${1 + adjustments.gamma / 200}) `;
+        adjustmentString += `contrast(${1 + adjustments.gamma / 200}) saturate(${1 + adjustments.gamma / 200}) `
       }
       if (adjustments.clarity !== 0) {
-        adjustmentString += `contrast(${
-          1 + adjustments.clarity / 200
-        }) saturate(${1 + adjustments.clarity / 100}) `;
+        adjustmentString += `contrast(${1 + adjustments.clarity / 200}) saturate(${1 + adjustments.clarity / 100}) `
       }
       if (adjustments.vignette !== 0) {
-        adjustmentString += `brightness(${
-          1 - Math.abs(adjustments.vignette) / 200
-        }) `;
+        adjustmentString += `brightness(${1 - Math.abs(adjustments.vignette) / 200}) `
       }
 
       // Combine filter and adjustments
-      const combinedFilter = filterStyle
-        ? filterStyle + " " + adjustmentString
-        : adjustmentString;
-      mediaRef.current.style.filter = combinedFilter.trim() || "none";
+      const combinedFilter = filterStyle ? filterStyle + " " + adjustmentString : adjustmentString
+      mediaRef.current.style.filter = combinedFilter.trim() || "none"
 
       // Also update the history state
       applyTransformation(mediaRef.current, {
         ...mediaHistory[historyIndex],
         filter: options,
-      });
+      })
     }
-  };
+  }
 
   const applyFilter = () => {
-    addToHistory({ filter: filterOptions });
-  };
+    addToHistory({ filter: filterOptions })
+  }
 
   const handleResizeChange = (options) => {
-    setResizeOptions(options);
-  };
+    setResizeOptions(options)
+  }
 
   const applyResize = (options) => {
-    const element = mediaRef.current;
-    const resize = options || resizeOptions;
+    const element = mediaRef.current
+    const resize = options || resizeOptions
 
     // Check if we have valid dimensions
     if (element && resize?.width && resize?.height) {
       // Set the dimensions on the canvas element
-      element.style.width = `${resize.width}px`;
-      element.style.height = `${resize.height}px`;
+      element.style.width = `${resize.width}px`
+      element.style.height = `${resize.height}px`
 
       // Handle zoom behavior for larger dimensions
-      const containerElement = containerRef.current;
+      const containerElement = containerRef.current
       if (containerElement) {
-        const containerRect = containerElement.getBoundingClientRect();
+        const containerRect = containerElement.getBoundingClientRect()
 
         // Check if dimensions exceed container
-        if (
-          resize.width > containerRect.width ||
-          resize.height > containerRect.height
-        ) {
+        if (resize.width > containerRect.width || resize.height > containerRect.height) {
           // Ensure content fits using contain
-          element.style.maxWidth = "100%";
-          element.style.maxHeight = "100%";
-          element.style.objectFit = "contain";
+          element.style.maxWidth = "100%"
+          element.style.maxHeight = "100%"
+          element.style.objectFit = "contain"
         } else {
           // Reset constraints when smaller than container
-          element.style.maxWidth = "none";
-          element.style.maxHeight = "none";
-          element.style.objectFit = "none";
+          element.style.maxWidth = "none"
+          element.style.maxHeight = "none"
+          element.style.objectFit = "none"
         }
       }
 
       // Apply the same dimensions to the video/image element
       if (mediaRef.current) {
-        mediaRef.current.style.width = `${resize.width}px`;
-        mediaRef.current.style.height = `${resize.height}px`;
+        mediaRef.current.style.width = `${resize.width}px`
+        mediaRef.current.style.height = `${resize.height}px`
 
         // Force a DOM reflow to ensure changes apply immediately
-        void mediaRef.current.offsetHeight;
+        void mediaRef.current.offsetHeight
       }
     }
 
     // Add to history to make the change permanent
-    addToHistory({ resize });
+    addToHistory({ resize })
 
     // Update dimensions after resize
-    setTimeout(updateMediaDimensions, 100);
-  };
+    setTimeout(updateMediaDimensions, 100)
+  }
 
   // Updated to use the adjustments state
   const handleFinetuneChange = (newAdjustments) => {
-    setAdjustments(newAdjustments);
-  };
+    setAdjustments(newAdjustments)
+  }
 
   // Reset finetune adjustments
   const resetFinetuneAdjustments = () => {
@@ -827,12 +798,12 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
       gamma: 0,
       clarity: 0,
       vignette: 0,
-    });
+    })
 
     if (mediaRef.current) {
-      mediaRef.current.style.filter = "none";
+      mediaRef.current.style.filter = "none"
     }
-  };
+  }
 
   const applyFinetune = () => {
     // Make sure to update any text annotations with the current color settings
@@ -844,18 +815,18 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
             // Ensure color is updated if it was changed
             color: annotation.style.color,
           },
-        });
+        })
       }
-    });
+    })
 
-    addToHistory({ finetune: adjustments });
-  };
+    addToHistory({ finetune: adjustments })
+  }
 
   const handleAddSticker = (sticker) => {
     // Make sure we have the latest media dimensions
-    updateMediaDimensions();
+    updateMediaDimensions()
 
-    const defaultPosition = { x: 50, y: 50 };
+    const defaultPosition = { x: 50, y: 50 }
     setStickers((prevStickers) => [
       ...prevStickers,
       {
@@ -863,24 +834,22 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
         id: Date.now(), // Ensure each sticker has a unique ID
         position: defaultPosition,
       },
-    ]);
-  };
+    ])
+  }
 
   const handleStickerChange = (id, newProperties) => {
     setStickers((prevStickers) =>
-      prevStickers.map((sticker) =>
-        sticker.id === id ? { ...sticker, ...newProperties } : sticker
-      )
-    );
-  };
+      prevStickers.map((sticker) => (sticker.id === id ? { ...sticker, ...newProperties } : sticker)),
+    )
+  }
 
   // Enhanced annotation functions
   const handleAddAnnotation = (annotation) => {
     // Generate a unique ID if not provided
-    const id = annotation.id || Date.now();
+    const id = annotation.id || Date.now()
 
     // Default position to center if not provided
-    const position = annotation.position || { x: 50, y: 50 };
+    const position = annotation.position || { x: 50, y: 50 }
 
     setAnnotations((prev) => [
       ...prev,
@@ -906,46 +875,35 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
                 stroke: annotation.style?.stroke || "#FFFFFF",
                 fill:
                   annotation.style?.fill ||
-                  (annotation.type === "arrow" || annotation.type === "line"
-                    ? undefined
-                    : "rgba(255, 255, 255, 0.2)"),
+                  (annotation.type === "arrow" || annotation.type === "line" ? undefined : "rgba(255, 255, 255, 0.2)"),
               },
       },
-    ]);
-  };
+    ])
+  }
 
   // Update the handleUpdateAnnotation function to ensure it properly handles text content updates
   const handleUpdateAnnotation = (id, newProperties) => {
-    console.log("Updating annotation:", id, newProperties);
+    console.log("Updating annotation:", id, newProperties)
 
     setAnnotations((prev) => {
       // Check if annotation exists
-      const exists = prev.some((a) => a.id === id);
+      const exists = prev.some((a) => a.id === id)
 
       if (exists) {
         // Update existing annotation
         return prev.map((annotation) => {
           if (annotation.id === id) {
             // For rectangles, ensure width and height are reasonable
-            const updatedProps = { ...newProperties };
+            const updatedProps = { ...newProperties }
 
-            if (
-              annotation.type === "rectangle" ||
-              newProperties.type === "rectangle"
-            ) {
+            if (annotation.type === "rectangle" || newProperties.type === "rectangle") {
               // Limit maximum width and height to prevent full-screen expansion
-              if (
-                updatedProps.width &&
-                updatedProps.width > mediaDimensions.width
-              ) {
-                updatedProps.width = mediaDimensions.width * 0.8;
+              if (updatedProps.width && updatedProps.width > mediaDimensions.width) {
+                updatedProps.width = mediaDimensions.width * 0.8
               }
 
-              if (
-                updatedProps.height &&
-                updatedProps.height > mediaDimensions.height
-              ) {
-                updatedProps.height = mediaDimensions.height * 0.8;
+              if (updatedProps.height && updatedProps.height > mediaDimensions.height) {
+                updatedProps.height = mediaDimensions.height * 0.8
               }
             }
 
@@ -953,122 +911,123 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
             if (annotation.type === "text") {
               // If we're updating style but not content, keep the existing content
               if (updatedProps.style && updatedProps.content === undefined) {
-                updatedProps.content = annotation.content;
+                updatedProps.content = annotation.content
               }
 
               // Ensure content is preserved even when shortened
               if (updatedProps.content !== undefined) {
                 // Make sure content is treated as a string
-                updatedProps.content = String(updatedProps.content);
+                updatedProps.content = String(updatedProps.content)
               }
             }
 
-            const updated = { ...annotation, ...updatedProps };
-            console.log("Updated annotation:", updated);
-            return updated;
+            const updated = { ...annotation, ...updatedProps }
+            console.log("Updated annotation:", updated)
+            return updated
           }
-          return annotation;
-        });
+          return annotation
+        })
       } else {
         // Add as new annotation if it doesn't exist
-        const newAnnotation = { id, ...newProperties };
-        return [...prev, newAnnotation];
+        const newAnnotation = { id, ...newProperties }
+        return [...prev, newAnnotation]
       }
-    });
+    })
 
     // Force a re-render of the canvas
     setTimeout(() => {
       if (stageRef.current) {
-        stageRef.current.batchDraw();
+        stageRef.current.batchDraw()
       }
-    }, 50);
-  };
+    }, 50)
+  }
 
   // New function to delete annotation
   const handleDeleteAnnotation = (id) => {
-    setAnnotations((prev) => prev.filter((annotation) => annotation.id !== id));
-  };
+    setAnnotations((prev) => prev.filter((annotation) => annotation.id !== id))
+  }
 
   // Add this function to handle annotation selection
   const handleAnnotationSelection = (id) => {
-    setSelectedAnnotation(id);
+    setSelectedAnnotation(id)
 
     // If it's a text annotation, open the editor
-    const annotation = annotations.find((a) => a.id === id);
+    const annotation = annotations.find((a) => a.id === id)
     if (annotation && annotation.type === "text") {
-      setEditingAnnotationId(id);
+      setEditingAnnotationId(id)
     }
-  };
+  }
 
   const updateProgress = () => {
     if (mediaType === "video" && mediaRef.current && progressRef?.current) {
-      const videoElement = mediaRef.current;
-      const progress = (videoElement.currentTime / videoElement.duration) * 100;
-      progressRef.current.style.width = `${progress}%`;
-      setCurrentTime(videoElement.currentTime);
+      const videoElement = mediaRef.current
+      const progress = (videoElement.currentTime / videoElement.duration) * 100
+      progressRef.current.style.width = `${progress}%`
+      setCurrentTime(videoElement.currentTime)
     }
-  };
+  }
 
   const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
+    const minutes = Math.floor(timeInSeconds / 60)
+    const seconds = Math.floor(timeInSeconds % 60)
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+  }
 
   const handleUpdateSticker = (stickerIndex, updatedSticker) => {
     setStickers((prevStickers) => {
-      const newStickers = [...prevStickers];
-      newStickers[stickerIndex] = updatedSticker;
-      return newStickers;
-    });
-  };
+      const newStickers = [...prevStickers]
+      newStickers[stickerIndex] = updatedSticker
+      return newStickers
+    })
+  }
 
   const handleDeleteSticker = (index) => {
     setStickers((prevStickers) => {
-      const newStickers = [...prevStickers];
-      newStickers.splice(index, 1);
-      return newStickers;
-    });
-  };
+      const newStickers = [...prevStickers]
+      newStickers.splice(index, 1)
+      return newStickers
+    })
+  }
 
   const handleTrimComplete = (trimmedUrl) => {
-    setTrimmedVideoUrl(trimmedUrl);
-    console.log("Trimmed video URL:", trimmedUrl);
+    setTrimmedVideoUrl(trimmedUrl)
+    console.log("Trimmed video URL:", trimmedUrl)
+
+    // Update the video source to the new trimmed URL
+    if (mediaRef.current && mediaType === "video") {
+      mediaRef.current.src = trimmedUrl
+      mediaRef.current.load()
+    }
 
     // Update dimensions after trimming
-    setTimeout(updateMediaDimensions, 100);
-  };
+    setTimeout(updateMediaDimensions, 100)
+  }
 
   useEffect(() => {
     if (mediaType === "video" && mediaRef.current) {
-      const videoElement = mediaRef.current;
+      const videoElement = mediaRef.current
 
-      const handlePlayEvent = () => setIsPlaying(true);
-      const handlePauseEvent = () => setIsPlaying(false);
-      const handleEndEvent = () => setIsPlaying(false);
-      const handleTimeUpdate = () => updateProgress();
-      const handleDurationChange = () => setDuration(videoElement.duration);
+      const handlePlayEvent = () => setIsPlaying(true)
+      const handlePauseEvent = () => setIsPlaying(false)
+      const handleEndEvent = () => setIsPlaying(false)
+      const handleTimeUpdate = () => updateProgress()
+      const handleDurationChange = () => setDuration(videoElement.duration)
 
-      videoElement.addEventListener("play", handlePlayEvent);
-      videoElement.addEventListener("pause", handlePauseEvent);
-      videoElement.addEventListener("ended", handleEndEvent);
-      videoElement.addEventListener("timeupdate", handleTimeUpdate);
-      videoElement.addEventListener("durationchange", handleDurationChange);
+      videoElement.addEventListener("play", handlePlayEvent)
+      videoElement.addEventListener("pause", handlePauseEvent)
+      videoElement.addEventListener("ended", handleEndEvent)
+      videoElement.addEventListener("timeupdate", handleTimeUpdate)
+      videoElement.addEventListener("durationchange", handleDurationChange)
 
       return () => {
-        videoElement.removeEventListener("play", handlePlayEvent);
-        videoElement.removeEventListener("pause", handlePauseEvent);
-        videoElement.removeEventListener("ended", handleEndEvent);
-        videoElement.removeEventListener("timeupdate", handleTimeUpdate);
-        videoElement.removeEventListener(
-          "durationchange",
-          handleDurationChange
-        );
-      };
+        videoElement.removeEventListener("play", handlePlayEvent)
+        videoElement.removeEventListener("pause", handlePauseEvent)
+        videoElement.removeEventListener("ended", handleEndEvent)
+        videoElement.removeEventListener("timeupdate", handleTimeUpdate)
+        videoElement.removeEventListener("durationchange", handleDurationChange)
+      }
     }
-  }, [mediaType]);
+  }, [mediaType])
 
   // useEffect(() => {
   //   const handleMediaLoad = () => {
@@ -1119,60 +1078,54 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
   //   };
   // }, [mediaType]);
 
-
-
   useEffect(() => {
     const handleMediaLoad = () => {
       if (mediaRef.current) {
-        const element = mediaRef.current;
-  
+        const element = mediaRef.current
+
         // Actual current size on screen
-        const currentWidth = element.offsetWidth;
-        const currentHeight = element.offsetHeight;
-  
-        const naturalWidth =
-          mediaType === "video" ? element.videoWidth : element.naturalWidth;
-        const naturalHeight =
-          mediaType === "video" ? element.videoHeight : element.naturalHeight;
-  
+        const currentWidth = element.offsetWidth
+        const currentHeight = element.offsetHeight
+
+        const naturalWidth = mediaType === "video" ? element.videoWidth : element.naturalWidth
+        const naturalHeight = mediaType === "video" ? element.videoHeight : element.naturalHeight
+
         if (currentWidth && currentHeight) {
           setResizeOptions({
             width: currentWidth,
             height: currentHeight,
             maintainAspectRatio: true,
-          });
-  
+          })
+
           setMediaDimensions({
-                      width: naturalWidth,
-                      height: naturalHeight,
-                      naturalWidth: naturalWidth,
-                      naturalHeight: naturalHeight,
-                    });
-        }
-      }
-    };
-  
-    if (mediaRef.current) {
-      const el = mediaRef.current;
-      if (mediaType === "image") {
-        if (el.complete) {
-          handleMediaLoad();
-        } else {
-          el.addEventListener("load", handleMediaLoad);
-          return () => el.removeEventListener("load", handleMediaLoad);
-        }
-      } else {
-        if (el.readyState >= 1) {
-          handleMediaLoad();
-        } else {
-          el.addEventListener("loadedmetadata", handleMediaLoad);
-          return () => el.removeEventListener("loadedmetadata", handleMediaLoad);
+            width: naturalWidth,
+            height: naturalHeight,
+            naturalWidth: naturalWidth,
+            naturalHeight: naturalHeight,
+          })
         }
       }
     }
-  }, [mediaRef, mediaType]);
-  
 
+    if (mediaRef.current) {
+      const el = mediaRef.current
+      if (mediaType === "image") {
+        if (el.complete) {
+          handleMediaLoad()
+        } else {
+          el.addEventListener("load", handleMediaLoad)
+          return () => el.removeEventListener("load", handleMediaLoad)
+        }
+      } else {
+        if (el.readyState >= 1) {
+          handleMediaLoad()
+        } else {
+          el.addEventListener("loadedmetadata", handleMediaLoad)
+          return () => el.removeEventListener("loadedmetadata", handleMediaLoad)
+        }
+      }
+    }
+  }, [mediaRef, mediaType])
 
   // Make sure to clear any filters when changing tools or on component unmount
   useEffect(() => {
@@ -1180,81 +1133,79 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
     if (mediaRef.current) {
       if (activeTool !== "finetune") {
         // When not in finetune mode, still apply the saved adjustments
-        let filterString = "";
+        let filterString = ""
 
         // Apply filter if one is selected
         if (filterOptions.name) {
-          const filterStyle = getFilterStyle(filterOptions.name);
+          const filterStyle = getFilterStyle(filterOptions.name)
           // Apply filter with intensity
           if (filterStyle) {
-            filterString += filterStyle + " ";
+            filterString += filterStyle + " "
           }
         }
 
         if (adjustments.brightness !== 0) {
-          filterString += `brightness(${1 + adjustments.brightness / 100}) `;
+          filterString += `brightness(${1 + adjustments.brightness / 100}) `
         }
         if (adjustments.contrast !== 0) {
-          filterString += `contrast(${1 + adjustments.contrast / 100}) `;
+          filterString += `contrast(${1 + adjustments.contrast / 100}) `
         }
         if (adjustments.saturation !== 0) {
-          filterString += `saturate(${1 + adjustments.saturation / 100}) `;
+          filterString += `saturate(${1 + adjustments.saturation / 100}) `
         }
         if (adjustments.exposure !== 0) {
-          filterString += `brightness(${1 + adjustments.exposure / 100}) `;
+          filterString += `brightness(${1 + adjustments.exposure / 100}) `
         }
         if (adjustments.gamma !== 0) {
-          filterString += `contrast(${1 + adjustments.gamma / 200}) saturate(${
-            1 + adjustments.gamma / 200
-          }) `;
+          filterString += `contrast(${1 + adjustments.gamma / 200}) saturate(${1 + adjustments.gamma / 200}) `
         }
         if (adjustments.clarity !== 0) {
-          filterString += `contrast(${1 + adjustments.clarity / 200}) saturate(${1 + adjustments.clarity / 100}) `;
-        }
-        
-        if (adjustments.vignette !== 0) {
-          // Vignette simulated by reducing brightness slightly
-          filterString += `brightness(${1 - Math.abs(adjustments.vignette) / 200}) `;
+          filterString += `contrast(${1 + adjustments.clarity / 200}) saturate(${1 + adjustments.clarity / 100}) `
         }
 
-        mediaRef.current.style.filter = filterString.trim() || "none";
+        if (adjustments.vignette !== 0) {
+          // Vignette simulated by reducing brightness slightly
+          filterString += `brightness(${1 - Math.abs(adjustments.vignette) / 200}) `
+        }
+
+        mediaRef.current.style.filter = filterString.trim() || "none"
       }
     }
 
     // Update dimensions when tool changes
     if (activeTool === "crop" || activeTool === "sticker") {
-      updateMediaDimensions();
+      updateMediaDimensions()
     }
-  }, [activeTool, adjustments, filterOptions]);
+  }, [activeTool, adjustments, filterOptions])
 
   // Add a resize observer to update dimensions when the window or container size changes
   useEffect(() => {
     const resizeObserver = new ResizeObserver(() => {
-      updateMediaDimensions();
-    });
+      updateMediaDimensions()
+    })
 
     if (mediaContainerRef.current) {
-      resizeObserver.observe(mediaContainerRef.current);
+      resizeObserver.observe(mediaContainerRef.current)
     }
 
     return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
+      resizeObserver.disconnect()
+    }
+  }, [])
 
   // Preload FFmpeg when component mounts
   useEffect(() => {
     const preloadFFmpeg = async () => {
       try {
-        console.log("Preloading FFmpeg...");
-        await loadFFmpeg();
-        console.log("FFmpeg preloaded successfully");
+        console.log("Preloading FFmpeg...")
+        await loadFFmpeg()
+        console.log("FFmpeg preloaded successfully")
       } catch (error) {
-        console.error("Failed to preload FFmpeg:", error);
+        console.error("Failed to preload FFmpeg:", error)
       }
-    };
+    }
 
-    preloadFFmpeg();
+    preloadFFmpeg()
 
     // Clean up URLs when component unmounts
     return () => {
@@ -1263,28 +1214,28 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
     };
   }, []);
 
-  const [fontSize, setFontSize] = useState(24);
-  const [fontFamily, setFontFamily] = useState("Arial");
-  const [textAlign, setTextAlign] = useState("left");
-  const [color, setColor] = useState("#FFFFFF");
+  const [fontSize, setFontSize] = useState(24)
+  const [fontFamily, setFontFamily] = useState("Arial")
+  const [textAlign, setTextAlign] = useState("left")
+  const [color, setColor] = useState("#FFFFFF")
   const [textFormatting, setTextFormatting] = useState({
     bold: false,
     italic: false,
     underline: false,
     strikethrough: false,
-  });
+  })
 
   // Update the createAnnotation function to handle text properly
   const createAnnotation = (toolType) => {
-    if (!handleAddAnnotation) return;
+    if (!handleAddAnnotation) return
 
-    const tool = toolType || activeTool;
-    const basePosition = { x: 50, y: 50 }; // Default center position
+    const tool = toolType || activeTool
+    const basePosition = { x: 50, y: 50 } // Default center position
 
     let newAnnotation = {
       type: tool,
       position: basePosition,
-    };
+    }
 
     switch (tool) {
       case "text":
@@ -1302,23 +1253,23 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
             strikethrough: textFormatting.strikethrough,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
           },
-        };
-        break;
+        }
+        break
       // Other cases remain the same...
     }
 
     // Add the annotation
-    const createdAnnotation = { ...newAnnotation, id: Date.now() };
-    handleAddAnnotation(createdAnnotation);
+    const createdAnnotation = { ...newAnnotation, id: Date.now() }
+    handleAddAnnotation(createdAnnotation)
 
     // Select the new annotation
-    setSelectedAnnotation(createdAnnotation.id);
+    setSelectedAnnotation(createdAnnotation.id)
 
     // If it's a text annotation, show the editor immediately
     if (tool === "text") {
-      setEditingAnnotationId(createdAnnotation.id);
+      setEditingAnnotationId(createdAnnotation.id)
     }
-  };
+  }
 
   const renderActiveToolControls = useMemo(() => {
     switch (activeTool) {
@@ -1326,10 +1277,10 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
         return (
           <TrimVideo
             mediaRef={mediaRef}
-            mediaUrl={trimmedVideoUrl || mediaUrl}
+            mediaUrl={mediaUrl} // Use the original mediaUrl instead of trimmedVideoUrl
             onTrimComplete={handleTrimComplete}
           />
-        );
+        )
       case "crop":
         return (
           <CropControls
@@ -1423,7 +1374,6 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
   }, [
     activeTool,
     mediaRef,
-    trimmedVideoUrl,
     mediaUrl,
     cropOptions,
     cropRegion,
@@ -1441,12 +1391,7 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
   return (
     <div className="w-full flex flex-col h-[calc(100vh-5rem)]">
       <div className="border-b border-gray-800 px-4 py-2 flex items-center justify-between">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onBack}
-          className="text-gray-400 hover:text-white"
-        >
+        <Button size="sm" variant="ghost" onClick={onBack} className="text-gray-400 hover:text-white">
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Button>
 
@@ -1475,31 +1420,20 @@ const Editor = ({ mediaUrl, mediaType, mediaName, onBack }) => {
 
           <Button size="sm" onClick={handleExport} disabled={isExporting}>
             <Download className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">
-              {isExporting ? `Exporting ${exportProgress}%` : "Export"}
-            </span>
+            <span className="hidden sm:inline">{isExporting ? `Exporting ${exportProgress}%` : "Export"}</span>
           </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        <EditorToolbar
-          activeTool={activeTool}
-          onToolChange={handleToolChange}
-          mediaType={mediaType}
-        />
+        <EditorToolbar activeTool={activeTool} onToolChange={handleToolChange} mediaType={mediaType} />
 
-        <div
-          className="flex-1 overflow-hidden flex flex-col"
-          ref={mediaContainerRef}
-        >
+        <div className="flex-1 overflow-hidden flex flex-col" ref={mediaContainerRef}>
           {/* Show loading overlay if cropping or exporting */}
           {(cropping || isExporting) && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">
               <div className="text-white text-lg font-semibold mb-2">
-                {cropping
-                  ? "Cropping video..."
-                  : `Exporting video... ${exportProgress}%`}
+                {cropping ? "Cropping video..." : `Exporting video... ${exportProgress}%`}
               </div>
               {isExporting && (
                 <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
